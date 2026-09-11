@@ -1,0 +1,2 @@
+# Runtime dependencies live with the brick that needs them:
+#   bricks/nesso_companion/requirements.txt -> websockets

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nesso N1 Companion</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot" id="link-dot"></span>
+    <h1>Nesso N1 Companion</h1>
+  </div>
+  <div class="link-meta">
+    <span id="link-text">waiting for a Nesso</span>
+    <code id="link-url">&mdash;</code>
+  </div>
+</header>
+
+<!-- Two independent columns rather than a row grid, so a short card never gets
+     stretched to match a tall one beside it. -->
+<main>
+  <div class="col">
+
+    <!-- Live IMU readout. -->
+    <section class="card">
+      <h2>Motion</h2>
+      <div class="motion-grid">
+        <div class="axis-group">
+          <h3>Accelerometer <small>g</small></h3>
+          <div class="bars" id="accel-bars"></div>
+        </div>
+        <div class="axis-group">
+          <h3>Gyroscope <small>&deg;/s</small></h3>
+          <div class="bars" id="gyro-bars"></div>
+        </div>
+        <div class="axis-group tilt-group">
+          <h3>Orientation</h3>
+          <div class="tilt">
+            <div class="tilt-box">
+              <div class="tilt-dot" id="tilt-dot"></div>
+              <div class="tilt-cross"></div>
+            </div>
+            <dl class="kv tight">
+              <dt>pitch</dt><dd id="v-pitch">&mdash;</dd>
+              <dt>roll</dt><dd id="v-roll">&mdash;</dd>
+              <dt>battery</dt><dd id="v-battery">&mdash;</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Modulinos plugged into the Nesso's Qwiic connector. -->
+    <section class="card">
+      <h2>Modulinos</h2>
+      <p class="hint">Only the kinds this App subscribed to are brought up. Plug one into the Nesso's Qwiic connector and it is picked up within a few seconds, no re-linking.</p>
+      <ul class="chips" id="mod-presence"></ul>
+
+      <div class="modulino-grid">
+        <div class="distance">
+          <div class="readout-head"><span>Distance</span><b id="distance-value">&mdash;</b></div>
+          <div class="distance-track"><div class="distance-fill" id="distance-fill"></div></div>
+          <p class="hint" id="distance-note">waiting for a Modulino Distance</p>
+        </div>
+
+        <div class="pixels">
+          <div class="readout-head">
+            <span>Pixels</span>
+            <label class="switch-label"><input type="checkbox" id="px-auto"> auto from distance</label>
+          </div>
+          <div class="pixels-row">
+            <label for="px-hue">Hue</label>
+            <input type="range" id="px-hue" min="0" max="345" step="15" value="200">
+            <span class="swatch" id="px-swatch"></span>
+          </div>
+          <div class="pixels-row always-on">
+            <label for="px-level">Level</label>
+            <input type="range" id="px-level" min="0" max="100" step="5" value="25">
+            <b id="px-level-val">25%</b>
+          </div>
+          <div class="pixels-row">
+            <label for="px-count">Lit</label>
+            <input type="range" id="px-count" min="0" max="8" step="1" value="8">
+            <b id="px-count-val">8</b>
+          </div>
+          <p class="hint" id="pixels-note">writes straight to the LEDs on the Nesso</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Discrete events: buttons, widget taps, Modulinos, link changes. -->
+    <section class="card">
+      <h2>Events</h2>
+      <p class="hint">Buttons, screen taps and Modulino activity, newest first.</p>
+      <ol class="events" id="events"></ol>
+    </section>
+
+  </div>
+
+  <div class="col">
+
+    <!-- What the board asked the Nesso for during the handshake. -->
+    <section class="card">
+      <h2>Handshake</h2>
+      <p class="hint">Everything below was requested by this App. The Nesso powers up nothing else.</p>
+      <dl class="kv">
+        <dt>App</dt><dd id="hs-app">&mdash;</dd>
+        <dt>Device</dt><dd id="hs-device">not connected</dd>
+        <dt>Firmware</dt><dd id="hs-fw">&mdash;</dd>
+        <dt>Address</dt><dd id="hs-address">&mdash;</dd>
+      </dl>
+      <h3>Subscriptions</h3>
+      <ul class="chips" id="hs-subs"></ul>
+    </section>
+
+    <!-- Screen widgets the Nesso is drawing right now. -->
+    <section class="card">
+      <h2>Nesso screen</h2>
+      <p class="hint">135 &times; 240 dashboard generated from the widgets this App registered.</p>
+      <div id="widgets" class="widgets"></div>
+    </section>
+
+  </div>
+</main>
+
+<script src="js/vendor/socket.io.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
