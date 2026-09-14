@@ -607,6 +607,17 @@ void writeModulinoPixels(const uint32_t* colors, uint8_t count) {
   pixels.show();
 }
 
+static bool backlightState = true;
+
+void setBacklight(bool on) {
+  if (on == backlightState) return;
+  backlightState = on;
+  digitalWrite(LCD_BACKLIGHT, on ? HIGH : LOW);
+  Serial.printf("[screen] %s\n", on ? "awake" : "idle");
+}
+
+bool backlightOn() { return backlightState; }
+
 void scanI2C() {
   Serial.println("[i2c] scanning 0x08..0x77");
   uint8_t found = 0;
@@ -635,6 +646,7 @@ void scanI2C() {
 
 void begin() {
   display.begin();
+  backlightState = true;  // NessoDisplay::begin() drives the backlight high
   display.setRotation(SCREEN_ROTATION);
   display.setEpdMode(epd_mode_t::epd_fastest);
   display.fillScreen(COL_BG);

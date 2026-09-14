@@ -81,6 +81,10 @@
 // millimetres, no faster than this.
 #define DISTANCE_DELTA_MM 8.0f
 #define DISTANCE_MIN_INTERVAL_MS 100
+// The backlight is the largest single load on the battery, and it is on/off
+// through the I2C expander - there is no PWM on that pin. So the lever is to
+// blank the screen after this long with no touch and no key. 0 disables it.
+#define SCREEN_IDLE_MS 60000
 #define SCREEN_REFRESH_MS 100  // interaction forces an immediate repaint anyway
 #define WS_RECONNECT_MS 3000
 // Polling the socket every loop iteration costs ~50us a time and buys nothing

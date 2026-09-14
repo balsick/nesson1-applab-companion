@@ -56,6 +56,7 @@ baud:
 | `screen` | Dump the framebuffer (see the screenshot tool below). |
 | `tap <x> <y>` | Test aid: inject a tap, through the handlers the touch controller feeds. |
 | `scroll <px>` | Test aid: scroll the current list by a pixel amount. |
+| `idle <s>` | Blank the screen after this many seconds of no input; `0` never. |
 | `help` | The list above. |
 
 `tools/nesso_console.py` in the App root drives it without needing pyserial:
@@ -194,6 +195,22 @@ first, with a green dot, and dims the rest. If you pick one anyway:
   says "that board has no companion running", and returns to the list;
 - once linked, if the board stops answering for `RELINK_TIMEOUT_MS` (30 s) it
   goes back and rescans.
+
+### Screen idle
+
+The backlight is the largest single load on the battery, and `LCD_BACKLIGHT` is
+an expander pin — on or off, with no PWM to dim it. So the screen simply blanks
+after `SCREEN_IDLE_MS` (60 s) with no touch and no key, and the redraw is skipped
+entirely while it is dark, which saves the full-frame SPI push as well.
+
+The two kinds of input are treated differently on purpose:
+
+- **A key wakes the screen and still does its job.** This is a remote first; a
+  press that only turned the backlight on would lose you a slide.
+- **A touch on a dark screen only wakes it.** Reaching for a device you cannot
+  see should not press whatever happens to be under your finger.
+
+`idle <seconds>` on the console changes it, and `idle 0` disables it.
 
 ### Touch targets
 

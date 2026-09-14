@@ -49,6 +49,21 @@ static uint16_t companionPort = NESSO_DEFAULT_PORT;
 static uint32_t lastDrawMs = 0;
 static bool exitGestureLatched = false;
 
+// Screen idle. The keys are a remote, so they always act and wake the screen as
+// a side effect; a touch on a dark screen only wakes it, because reaching for a
+// device you cannot see should not press whatever happens to be under a finger.
+static uint32_t lastInputMs = 0;
+static uint32_t idleAfterMs = SCREEN_IDLE_MS;
+
+// Returns true when this input was spent waking the screen.
+static bool noteInput() {
+  lastInputMs = millis();
+  if (hw::backlightOn()) return false;
+  hw::setBacklight(true);
+  lastDrawMs = 0;
+  return true;
+}
+
 // Loop timing, reported by the `status` command.
 static uint32_t loopLastUs = 0;
 static uint32_t loopMaxUs = 0;
@@ -145,6 +160,9 @@ static void onModulinoPresence() {
 // --- Keys -----------------------------------------------------------------
 
 static void onKeyEvent(uint8_t index, const char* action) {
+  // A key wakes the screen and still does its job: this is a remote first.
+  noteInput();
+
   switch (state) {
     case ST_PICK:
       // Holding the select key is the way back to Wi-Fi setup without a cable.
@@ -286,19 +304,19 @@ static void runPick() {
     return;
   }
   uint32_t now = millis();
-  if (now - lastDrawMs >= SCREEN_REFRESH_MS) {
+  if (hw::backlightOn() && now - lastDrawMs >= SCREEN_REFRESH_MS) {
     lastDrawMs = now;
     ui::drawPicker(pickIndex, net::storedSsid());
   }
 
   hw::Gesture drag;
-  if (hw::takeDrag(drag)) {
+  if (hw::takeDrag(drag) && !noteInput()) {
     ui::scrollPickerBy(-drag.stepDy);
     lastDrawMs = 0;
   }
 
   hw::TouchPoint tap;
-  if (hw::takeTap(tap)) {
+  if (hw::takeTap(tap) && !noteInput()) {
     int8_t hit = ui::pickerHit(tap.x, tap.y);
     if (hit >= 0) {
       pickIndex = (uint8_t)hit;
@@ -363,7 +381,7 @@ static void runLink() {
   }
 
   hw::TouchPoint tap;
-  if (hw::takeTap(tap)) {
+  if (hw::takeTap(tap) && !noteInput()) {
     if (!linkEverHandshaked) {
       // A tap cancels a link that has not come up yet.
       companion::stop();
@@ -377,13 +395,13 @@ static void runLink() {
 
   // Dragging is the only way to scroll once the App has claimed both keys.
   hw::Gesture drag;
-  if (hw::takeDrag(drag)) {
+  if (hw::takeDrag(drag) && !noteInput()) {
     Widget* changed = ui::dashboardDrag(drag);
     if (changed) companion::sendWidgetValue(*changed);
     lastDrawMs = 0;
   }
 
-  if (now - lastDrawMs >= SCREEN_REFRESH_MS) {
+  if (hw::backlightOn() && now - lastDrawMs >= SCREEN_REFRESH_MS) {
     lastDrawMs = now;
     if (companion::handshakeDone()) {
       TIME_INTO(tDraw, ui::drawDashboard(companion::isConnected(), companion::boardLabel()));
@@ -408,6 +426,8 @@ static void printStatus() {
                 companion::handshakeDone() ? "done" : "pending");
   Serial.printf("[status] battery %.0f%% %.3fV charger=%s\n", hw::batteryLevel(),
                 hw::batteryVoltage(), hw::chargeStatusName());
+  Serial.printf("[status] screen %s, idle after %lus\n", hw::backlightOn() ? "awake" : "dark",
+                (unsigned long)(idleAfterMs / 1000));
 
   Serial.printf("[status] loop avg %lu us, worst %lu us, over %lu iterations\n",
                 loopCount ? (unsigned long)(loopSumUs / loopCount) : 0UL,
@@ -524,6 +544,11 @@ static void runCommand(String line) {
       }
     }
     lastDrawMs = 0;
+  } else if (verb == "idle") {
+    idleAfterMs = (uint32_t)rest.toInt() * 1000UL;
+    Serial.printf("[screen] idle after %lus%s\n", (unsigned long)(idleAfterMs / 1000),
+                  idleAfterMs ? "" : " (disabled)");
+    noteInput();
   } else if (verb == "battery") {
     hw::dumpCharger();
   } else if (verb == "i2c") {
@@ -534,7 +559,7 @@ static void runCommand(String line) {
     printStatus();
   } else if (verb == "help") {
     Serial.println("commands: wifi <ssid> <pass> | port <n> | scan | connect [n] |");
-    Serial.println("          status | screen | i2c | battery | portal | forget | help");
+    Serial.println("          status | screen | i2c | battery | idle <s> | portal | forget");
     Serial.println("  test:   tap <x> <y> | scroll <px>");
   } else {
     Serial.printf("unknown command '%s', try 'help'\n", verb.c_str());
@@ -610,6 +635,13 @@ void loop() {
   loopLastUs = nowUs;
 
   pollConsole();
+  // Blank the screen once it has been left alone for long enough. millis(), not
+  // the micros() above: micros() wraps every 71 minutes, which is well inside
+  // the length of a talk, and the two timebases diverge from that point on.
+  if (idleAfterMs && hw::backlightOn() && millis() - lastInputMs > idleAfterMs) {
+    hw::setBacklight(false);
+  }
+
   TIME_INTO(tSensors, hw::pollKeys());
   TIME_INTO(tSensors, hw::pollTouch());
   TIME_INTO(tSensors, hw::pollBattery());

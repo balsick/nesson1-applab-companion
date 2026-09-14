@@ -15,6 +15,11 @@ namespace hw {
 
 void begin();
 
+// The backlight, which is the biggest draw on the battery. On/off only: the pin
+// is on the I2C expander, so there is no PWM to dim it with.
+void setBacklight(bool on);
+bool backlightOn();
+
 // Prints every address answering on the shared I2C bus. The IMU, touch
 // controller, gauge, expanders and any Modulino all live there.
 void scanI2C();
