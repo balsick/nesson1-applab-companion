@@ -132,14 +132,13 @@ the Nesso's screen.
 
 - **Phase 1 — the link, end to end.** Done. Discovery, handshake, sensors,
   buttons, screen widgets, Modulinos, all verified on hardware.
-- **Phase 2 — presentation remote.** The only phase still open. `on("button_1")`
-  → next slide, `on("button_2")` → previous, `pitch`/`roll` → move a cursor
-  (steadier than raw `accelerometerX/Y`). The groundwork is already in and
-  verified: both buttons fire, the IMU streams at 20 Hz, the `slide` stepper is
-  on the Nesso screen, and `send_value("slide", ...)` pushes the current slide
-  back. What is missing is the slide deck in the Web UI, the key wiring, and
-  smoothing on the cursor. **None of it touches the firmware**, so the iteration
-  loop is an App restart rather than a reflash.
+- **Phase 2 — presentation remote.** Done, as a **separate App**: see
+  `../nesso-presenter`. Keys change slide, tilt moves a pointer, and the Nesso's
+  screen carries a jump control and the clock. It reuses this brick and this
+  firmware unchanged — the whole phase was written without reflashing the Nesso
+  once. Where this App registers ten sensors and five Modulinos, the presenter
+  registers four values and nothing else, which is the clearest demonstration of
+  what the handshake is for.
 - **Phase 3 — Modulino Pixels.** Done, out of order, once the hardware arrived.
   Writable three ways — automatically as a proximity bar from Distance, from the
   Nesso's screen, and from the Web UI — with `LED level` for brightness.
