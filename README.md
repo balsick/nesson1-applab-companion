@@ -25,20 +25,22 @@ from the same firmware.
 
 | On the Nesso | |
 | --- | --- |
-| **KEY1** | next slide |
-| **KEY2** | previous slide |
-| **hold KEY1** | blank the screen |
-| **hold KEY2** | recentre the pointer |
+| **KEY1**, the large button on the face | next slide |
+| **KEY2**, on the edge | previous slide |
 | Tilt | moves the pointer |
-| `Jump` | go to any slide |
+| `Jump` on its screen | go to any slide |
+| `Recentre` on its screen | take the current attitude as centre |
 | `Pointer`, `Sensitivity` | pointer on/off, and how far a tilt travels |
+
+KEY1 gets the action you do most because it is the big one under your thumb.
+Recentring is a screen button rather than a long press: holding a key mid-sentence
+is awkward, and a button can say what it does.
 
 | In the browser | |
 | --- | --- |
 | `←` `→` `space` `PageUp/Down` | change slide |
-| `b` | blank |
+| `f` or `b` | fullscreen |
 | `p` | pointer |
-| `f` | fullscreen |
 | `r` | recentre the pointer |
 
 Whichever side you touch, the other follows: the Nesso's screen shows the slide
@@ -77,9 +79,27 @@ looking live.
 | --- | --- |
 | `# text` | the title, with an accent rule under it |
 | `![](path)` | the illustration — one per slide, and it splits the layout in two |
+| `!live <kind>` | a live panel instead of an illustration, see below |
+| ` ```…``` ` | a code block |
 | `> text` | a lead line, larger and in full white |
 | `- text` | a bullet |
 | anything else | a muted paragraph |
+
+### Live slides
+
+Two slides are not drawings.
+
+`!live pixels` mirrors a **Modulino Pixels** as eight dots, and drives the real
+module while that slide is on screen — a comet if it is alone, a proximity bar
+if a Distance module is attached too. Leave the slide and the LEDs go dark. So
+the demonstration is simply to plug the module in during the talk: the Nesso
+re-probes every three seconds, the panel switches from "waiting" to "attached,
+and this slide is driving it", and the strip lights up.
+
+`!live credits` reads the handshake back off the link — the values being
+streamed, the buttons claimed, the widgets drawn, which Modulinos answered, and
+how many slides were advanced from the remote versus the browser. Nothing there
+is written down in advance.
 
 Deliberately not a Markdown parser: that table is the whole grammar, which keeps
 the deck editable by hand. Slide text is HTML-escaped before `**bold**` is

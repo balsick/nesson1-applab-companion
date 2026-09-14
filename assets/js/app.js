@@ -46,6 +46,12 @@ function renderSlide(slide, into) {
       const li = document.createElement("li");
       li.innerHTML = emphasise(block.text);
       list.appendChild(li);
+    } else if (block.kind === "code") {
+      list = null;
+      const pre = document.createElement("pre");
+      pre.className = "code";
+      pre.textContent = block.text;
+      words.appendChild(pre);
     } else {
       list = null;
       const p = document.createElement("p");
@@ -55,6 +61,17 @@ function renderSlide(slide, into) {
     }
   }
   into.appendChild(words);
+
+  // A live panel takes the figure half and is filled in by each tick.
+  if (slide.live) {
+    into.classList.add("has-image");
+    const panel = document.createElement("div");
+    panel.className = "figure live";
+    panel.id = `live-${slide.live}`;
+    panel.innerHTML =
+      slide.live === "pixels" ? PIXELS_PANEL : slide.live === "credits" ? CREDITS_PANEL : "";
+    into.appendChild(panel);
+  }
 
   if (slide.image) {
     const figure = document.createElement("div");
@@ -88,11 +105,70 @@ function renderDeck() {
   const next = deck[state.index + 1];
   $("upnext-title").textContent = next ? next.title || "(untitled slide)" : "— end of deck —";
 
-  $("blanked").hidden = !state.blank;
-  $("toggle-blank").classList.toggle("active", state.blank);
   $("toggle-pointer").classList.toggle("active", state.pointer);
   $("prev").disabled = state.index === 0;
   $("next").disabled = state.index >= state.count - 1;
+}
+
+// --- Live panels -----------------------------------------------------------
+
+const PIXELS_PANEL = `
+  <div class="strip" id="strip"></div>
+  <p class="live-note" id="pixels-note">waiting for a Modulino Pixels…</p>
+  <p class="live-sub" id="pixels-sub"></p>`;
+
+const CREDITS_PANEL = `
+  <dl class="credits" id="credits"></dl>`;
+
+function renderLive(live, credits) {
+  const strip = $("strip");
+  if (strip) {
+    // Eight dots mirroring the colours actually on the module.
+    if (strip.children.length !== 8) {
+      strip.innerHTML = "";
+      for (let i = 0; i < 8; i++) strip.appendChild(document.createElement("span"));
+    }
+    const bar = live.pixels || [];
+    [...strip.children].forEach((led, i) => {
+      const [r, g, b] = bar[i] || [0, 0, 0];
+      const lit = r + g + b > 12;
+      led.style.background = `rgb(${r},${g},${b})`;
+      // Scale the glow with the colour so a dark LED does not appear to shine.
+      led.style.boxShadow = lit ? `0 0 16px 5px rgba(${r},${g},${b},.55)` : "none";
+      led.classList.toggle("off", !lit);
+    });
+
+    const attached = (live.attached || {}).pixels;
+    $("pixels-note").textContent = attached
+      ? live.driving
+        ? "attached, and this slide is driving it"
+        : "attached"
+      : "waiting for a Modulino Pixels…";
+    $("pixels-note").classList.toggle("ok", Boolean(attached));
+    $("pixels-sub").textContent =
+      live.distance != null
+        ? `a Distance module is steering it — ${Math.round(live.distance)} mm`
+        : attached
+        ? "plug a Distance module in too and it takes over"
+        : "it will be picked up within three seconds";
+  }
+
+  const list = $("credits");
+  if (list && credits) {
+    const rows = [
+      ["remote", credits.device ? `${credits.device} · firmware ${credits.firmware}` : "not connected"],
+      ["values it streams", credits.sensors.join(", ") || "none"],
+      ["buttons claimed", credits.buttons.join(", ") || "none"],
+      ["widgets it draws", `${credits.widgets.length} — ${credits.widgets.join(", ")}`],
+      ["Modulinos", Object.entries(credits.modulinos).map(([k, v]) => `${k} ${v ? "✓" : "✗"}`).join("  ") || "none asked for"],
+      ["slides", String(credits.slides)],
+      ["advanced from the remote", String(credits.from_remote)],
+      ["advanced from the browser", String(credits.from_browser)],
+    ];
+    list.innerHTML = rows
+      .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`)
+      .join("");
+  }
 }
 
 // --- Live readouts ---------------------------------------------------------
@@ -132,6 +208,8 @@ function renderTick(tick) {
     dot.style.top = `${(pointer.y * 100).toFixed(2)}%`;
   }
 
+  if (tick.live) renderLive(tick.live, tick.credits);
+
   $("clock").textContent = tick.clock;
   $("clock").classList.toggle("running", Boolean(tick.running));
   $("clock-note").textContent = tick.running ? "running" : "stopped";
@@ -152,7 +230,6 @@ const send = (action, extra = {}) => socket.emit("show", { action, ...extra });
 
 $("prev").onclick = () => send("prev");
 $("next").onclick = () => send("next");
-$("toggle-blank").onclick = () => send("blank");
 $("toggle-pointer").onclick = () => send("pointer");
 $("timer").onclick = () => send("timer");
 $("reset").onclick = () => send("reset");
@@ -169,9 +246,8 @@ document.addEventListener("keydown", (event) => {
   switch (event.key) {
     case "ArrowRight": case "PageDown": case " ": send("next"); break;
     case "ArrowLeft": case "PageUp": send("prev"); break;
-    case "b": case "B": send("blank"); break;
+    case "b": case "B": case "f": case "F": toggleFullscreen(); break;
     case "p": case "P": send("pointer"); break;
-    case "f": case "F": toggleFullscreen(); break;
     case "r": case "R": send("recentre"); break;
     default: return;
   }

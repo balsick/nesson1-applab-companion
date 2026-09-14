@@ -164,6 +164,52 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 22px 32px; }
 }
 .slide strong { color: var(--accent); font-weight: 650; }
 
+/* Code on a slide: small enough to be read from the back, not a listing. */
+.code {
+  margin: 0;
+  padding: 2vmin 2.4vmin;
+  background: rgba(0, 0, 0, .32);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 7px 7px 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: clamp(11px, 1.95vmin, 21px);
+  line-height: 1.6;
+  color: var(--accent);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* --- Live panels --------------------------------------------------------- */
+
+.live { flex-direction: column; gap: 2.4vmin; text-align: center; }
+
+/* Eight dots standing in for the real strip. */
+.strip { display: flex; gap: 1.6vmin; justify-content: center; }
+.strip span {
+  width: 4.4vmin; height: 4.4vmin;
+  max-width: 46px; max-height: 46px;
+  border-radius: 50%;
+  background: #000;
+  transition: background .1s linear, box-shadow .1s linear;
+}
+/* An unlit LED still has to read as one of eight, not as nothing. */
+.strip span.off { box-shadow: inset 0 0 0 1.5px var(--line); }
+
+.live-note { font-size: clamp(13px, 2.3vmin, 25px); color: var(--muted); margin: 0; }
+.live-note.ok { color: var(--green); }
+.live-sub { font-size: clamp(11px, 1.8vmin, 19px); color: var(--line); margin: 0; }
+
+.credits {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: .9vmin 2.2vmin;
+  margin: 0;
+  text-align: left;
+  font-size: clamp(11px, 1.85vmin, 20px);
+}
+.credits dt { color: var(--muted); white-space: nowrap; }
+.credits dd { margin: 0; color: var(--text); overflow-wrap: anywhere; }
+
 .figure { display: flex; align-items: center; justify-content: center; min-width: 0; }
 .figure img { width: 100%; height: auto; max-height: 62vmin; display: block; }
 
