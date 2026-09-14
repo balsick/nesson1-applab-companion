@@ -52,10 +52,12 @@ The three readouts across the top are the things worth glancing at mid-talk:
 
 - **Remote connected** — a dead remote mid-presentation is the failure that
   matters, so it is a dot and a sentence, not a buried status.
-- **Battery voltage** — in **volts**, because the Nesso's fuel gauge is not
-  calibrated and its percentage is not trustworthy (it has read 8% at 3.85 V, on
-  a cell that is flat at 3.3 V and full at 4.2 V). The percentage is shown
-  alongside, small. Below 3.55 V the readout turns red.
+- **Battery voltage** — in **volts**, with the percentage small beside it. The
+  gauge shipped uncalibrated and read 8% at 3.85 V, on a cell that is flat at
+  3.3 V and full at 4.2 V; after one full charge on an external supply it
+  learned, and now reads 99% at 4.09 V. Volts stay the headline anyway, because
+  they are the reading that never needed a learning cycle. Below 3.55 V the
+  readout turns red.
 - **Clock** — elapsed time, start/pause/reset, mirrored onto the Nesso's screen.
 
 Plus the classic presenter affordance: **up next**, so you know what is coming

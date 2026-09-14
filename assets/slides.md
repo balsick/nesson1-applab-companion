@@ -58,6 +58,14 @@ companion.on_value("slide", "stepper", jump)
 
 ---
 
+# What it could do next
+![](img/slides/power.svg)
+- The backlight is on/off through the expander, so the win is blanking when idle and waking on touch
+- The gauge already reports **current**, not just charge, so runtime is arithmetic
+> Then the handshake could quote its own price: what this subscription costs you, in minutes.
+
+---
+
 # This talk, measured
 !live credits
 > Not written down in advance. Read off the link, just now.
