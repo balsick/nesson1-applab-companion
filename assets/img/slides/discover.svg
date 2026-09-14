@@ -1,0 +1,31 @@
+<svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Three boards found on the network, one running a companion App">
+  <text x="210" y="26" text-anchor="middle" fill="#7d9ea4" font-family="ui-monospace,monospace" font-size="13">_arduino._tcp</text>
+  <g fill="none" stroke="#22383d" stroke-width="1.5" stroke-dasharray="4 5">
+    <path d="M210 36v26M210 62H72v18M210 62h138v18M210 62v18"/>
+  </g>
+
+  <!-- the one that answered -->
+  <g>
+    <rect x="140" y="80" width="140" height="66" rx="10" fill="#132023" stroke="#4cc38a" stroke-width="2"/>
+    <circle cx="262" cy="97" r="5.5" fill="#4cc38a"/>
+    <text x="158" y="106" fill="#e6f1f2" font-family="system-ui,sans-serif" font-size="15">balsickella</text>
+    <text x="158" y="128" fill="#4cc38a" font-family="system-ui,sans-serif" font-size="12.5">companion App</text>
+  </g>
+
+  <!-- the others -->
+  <g opacity=".45">
+    <rect x="14" y="80" width="106" height="66" rx="10" fill="#132023" stroke="#22383d" stroke-width="2"/>
+    <circle cx="104" cy="97" r="5.5" fill="#22383d"/>
+    <text x="28" y="106" fill="#7d9ea4" font-family="system-ui,sans-serif" font-size="14">ventunoq</text>
+    <text x="28" y="127" fill="#22383d" font-family="ui-monospace,monospace" font-size="11">.22.197</text>
+
+    <rect x="300" y="80" width="106" height="66" rx="10" fill="#132023" stroke="#22383d" stroke-width="2"/>
+    <circle cx="390" cy="97" r="5.5" fill="#22383d"/>
+    <text x="314" y="106" fill="#7d9ea4" font-family="system-ui,sans-serif" font-size="14">bettina</text>
+    <text x="314" y="127" fill="#22383d" font-family="ui-monospace,monospace" font-size="11">.22.199</text>
+  </g>
+
+  <path d="M210 152v22" stroke="#4cc38a" stroke-width="2.5" stroke-linecap="round" marker-end="url(#a)"/>
+  <defs><marker id="a" markerWidth="9" markerHeight="9" refX="5" refY="4.5" orient="auto"><path d="M0 0l7 4.5L0 9z" fill="#4cc38a"/></marker></defs>
+  <text x="210" y="204" text-anchor="middle" fill="#e6f1f2" font-family="system-ui,sans-serif" font-size="15">you tap that one</text>
+</svg>

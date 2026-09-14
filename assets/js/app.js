@@ -18,21 +18,30 @@ let lastTickAt = 0;
 
 function renderSlide(slide, into) {
   into.innerHTML = "";
+  into.classList.remove("has-image", "title-only");
   if (!slide) return;
+
+  // An illustration splits the slide in two; without one the words get the
+  // whole stage and are centred.
+  if (slide.image) into.classList.add("has-image");
+  if (!(slide.blocks || []).length) into.classList.add("title-only");
+
+  const words = document.createElement("div");
+  words.className = "words";
 
   if (slide.title) {
     const h = document.createElement("h2");
     h.textContent = slide.title;
-    into.appendChild(h);
+    words.appendChild(h);
   }
 
-  // Consecutive bullets belong in one list; anything else is a paragraph.
+  // Consecutive bullets belong in one list; anything else stands alone.
   let list = null;
   for (const block of slide.blocks || []) {
     if (block.kind === "bullet") {
       if (!list) {
         list = document.createElement("ul");
-        into.appendChild(list);
+        words.appendChild(list);
       }
       const li = document.createElement("li");
       li.innerHTML = emphasise(block.text);
@@ -40,9 +49,21 @@ function renderSlide(slide, into) {
     } else {
       list = null;
       const p = document.createElement("p");
+      p.className = block.kind === "lead" ? "lead" : "";
       p.innerHTML = emphasise(block.text);
-      into.appendChild(p);
+      words.appendChild(p);
     }
+  }
+  into.appendChild(words);
+
+  if (slide.image) {
+    const figure = document.createElement("div");
+    figure.className = "figure";
+    const img = document.createElement("img");
+    img.src = slide.image.src;
+    img.alt = slide.image.alt || "";
+    figure.appendChild(img);
+    into.appendChild(figure);
   }
 }
 
@@ -61,6 +82,8 @@ function renderDeck() {
   const label = `${state.index + 1} / ${state.count}`;
   $("counter").textContent = label;
   $("stage-badge").textContent = label;
+  const progress = state.count > 1 ? (state.index / (state.count - 1)) * 100 : 100;
+  $("progress").style.width = `${progress}%`;
 
   const next = deck[state.index + 1];
   $("upnext-title").textContent = next ? next.title || "(untitled slide)" : "— end of deck —";

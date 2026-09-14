@@ -1,0 +1,22 @@
+<svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tilting the Nesso moves a pointer on the slide">
+  <!-- the slide being pointed at -->
+  <rect x="176" y="36" width="232" height="140" rx="10" fill="#0d1a1d" stroke="#22383d" stroke-width="2"/>
+  <g fill="#22383d"><rect x="196" y="60" width="120" height="8" rx="4"/><rect x="196" y="82" width="170" height="5" rx="2.5"/><rect x="196" y="96" width="140" height="5" rx="2.5"/></g>
+
+  <!-- the ray -->
+  <path d="M96 150 322 118" stroke="#e8595b" stroke-width="2" stroke-dasharray="5 6" opacity=".55"/>
+  <circle cx="322" cy="118" r="11" fill="#e8595b" opacity=".22"/>
+  <circle cx="322" cy="118" r="6" fill="#e8595b"/>
+
+  <!-- the tilted Nesso -->
+  <g transform="rotate(-17 74 168)">
+    <rect x="46" y="120" width="56" height="96" rx="10" fill="#132023" stroke="#22383d" stroke-width="2"/>
+    <rect x="54" y="129" width="40" height="66" rx="4" fill="#0c1416" stroke="#22383d"/>
+    <circle cx="59" cy="206" r="3.5" fill="#22383d"/><circle cx="89" cy="206" r="3.5" fill="#22383d"/>
+  </g>
+  <g fill="none" stroke="#37d6e0" stroke-width="2" stroke-linecap="round">
+    <path d="M34 126a30 30 0 0 1 20-16" marker-end="url(#c)"/>
+  </g>
+  <defs><marker id="c" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto"><path d="M0 0l6 4L0 8z" fill="#37d6e0"/></marker></defs>
+  <text x="210" y="216" text-anchor="middle" fill="#7d9ea4" font-family="system-ui,sans-serif" font-size="14">pitch and roll, smoothed</text>
+</svg>

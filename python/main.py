@@ -67,21 +67,30 @@ def load_deck() -> list[dict]:
     with open(path, encoding="utf-8") as handle:
         raw = handle.read()
 
+    image_re = re.compile(r"^!\[(?P<alt>[^\]]*)\]\((?P<src>[^)]+)\)$")
+
     slides = []
     for chunk in re.split(r"^---\s*$", raw, flags=re.MULTILINE):
         title = ""
+        image = None
         blocks = []
-        for line in (l.rstrip() for l in chunk.strip().splitlines()):
+        for line in (l.strip() for l in chunk.strip().splitlines()):
             if not line:
                 continue
+            found = image_re.match(line)
             if line.startswith("# "):
                 title = line[2:].strip()
+            elif found:
+                # One illustration per slide; it drives the layout.
+                image = {"src": found["src"], "alt": found["alt"]}
+            elif line.startswith("> "):
+                blocks.append({"kind": "lead", "text": line[2:].strip()})
             elif line.startswith("- "):
                 blocks.append({"kind": "bullet", "text": line[2:].strip()})
             else:
                 blocks.append({"kind": "text", "text": line.strip()})
-        if title or blocks:
-            slides.append({"title": title, "blocks": blocks})
+        if title or blocks or image:
+            slides.append({"title": title, "image": image, "blocks": blocks})
 
     logger.info(f"deck loaded: {len(slides)} slide(s) from {path}")
     return slides or [{"title": "Empty deck", "blocks": []}]

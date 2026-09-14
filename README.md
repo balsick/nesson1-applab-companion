@@ -68,21 +68,35 @@ looking live.
 
 ```markdown
 # Slide title
-
-A paragraph.
-
-- a bullet
-- another, with **emphasis**
-
----
-
-# Next slide
+![](img/slides/thing.svg)
+> One line that carries the slide.
+- a bullet, with **emphasis**
 ```
 
-Deliberately not a Markdown parser — a heading, bullets, paragraphs and `**bold**`
-are all it handles, which keeps the deck editable by hand. It is read once at
-start-up, so restart the App after editing. Slide text is HTML-escaped before
-`**bold**` is applied, since the deck is a file anyone can edit.
+| Line | Becomes |
+| --- | --- |
+| `# text` | the title, with an accent rule under it |
+| `![](path)` | the illustration — one per slide, and it splits the layout in two |
+| `> text` | a lead line, larger and in full white |
+| `- text` | a bullet |
+| anything else | a muted paragraph |
+
+Deliberately not a Markdown parser: that table is the whole grammar, which keeps
+the deck editable by hand. Slide text is HTML-escaped before `**bold**` is
+applied, since the deck is a file anyone can edit. It is read once at start-up,
+so restart the App after editing.
+
+### The illustrations
+
+`assets/img/slides/*.svg`, hand-authored rather than stock images: they stay
+crisp at any projector size, cost a couple of kilobytes each, carry no licensing,
+and — being drawn for the slide — can show the actual mechanism instead of
+decorating it. They share the App's palette, so a theme change is a find and
+replace.
+
+A slide with an illustration puts words on the left and the figure on the right;
+without one, the words take the whole stage. On a portrait screen the split
+stacks instead.
 
 ## Run it
 

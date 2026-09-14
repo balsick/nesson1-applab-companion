@@ -101,23 +101,89 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 22px 32px; }
 /* In fullscreen the aspect box would letterbox twice over. */
 .stage:fullscreen { aspect-ratio: auto; width: 100%; height: 100%; border-radius: 0; }
 
+/* A slide is words on the left and an illustration on the right; without an
+   illustration the words take the whole stage. Everything is sized in vmin so
+   it scales with the projector rather than the browser window. */
 .slide {
   position: absolute; inset: 0;
-  padding: 7% 8%;
-  display: flex; flex-direction: column; justify-content: center;
-  gap: 2.2vmin;
+  padding: 6.5% 7%;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: center;
+  gap: 3vmin;
 }
+.slide.has-image {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: center;
+  gap: 5vmin;
+}
+/* A slide that is only a title and an image centres the pair instead. */
+.slide.has-image.title-only { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+
+.words { display: grid; align-content: center; gap: 2.4vmin; min-width: 0; }
+
 .slide h2 {
-  margin: 0 0 1vmin;
-  font-size: clamp(22px, 5.2vmin, 60px);
-  line-height: 1.12;
-  color: var(--accent);
-  font-weight: 600;
+  margin: 0;
+  font-size: clamp(24px, 6vmin, 68px);
+  line-height: 1.06;
+  letter-spacing: -.015em;
+  color: var(--text);
+  font-weight: 650;
 }
-.slide p { margin: 0; font-size: clamp(14px, 2.6vmin, 30px); color: var(--text); }
-.slide ul { margin: 0; padding-left: 1.2em; display: grid; gap: 1.1vmin; }
-.slide li { font-size: clamp(14px, 2.6vmin, 30px); }
-.slide strong { color: var(--accent); font-weight: 600; }
+/* A hairline under the title gives the type something to sit on. */
+.slide h2::after {
+  content: "";
+  display: block;
+  width: 2.6em; height: 3px;
+  margin-top: 1.6vmin;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+}
+
+.slide p { margin: 0; font-size: clamp(14px, 2.5vmin, 27px); color: var(--muted); }
+.slide p.lead {
+  font-size: clamp(16px, 3.1vmin, 34px);
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.slide ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 1.7vmin; }
+.slide li {
+  position: relative;
+  padding-left: 1.5em;
+  font-size: clamp(14px, 2.7vmin, 30px);
+  color: var(--text);
+  line-height: 1.25;
+}
+.slide li::before {
+  content: "";
+  position: absolute; left: 0; top: .52em;
+  width: .62em; height: .62em;
+  border-radius: 50%;
+  background: var(--teal);
+}
+.slide strong { color: var(--accent); font-weight: 650; }
+
+.figure { display: flex; align-items: center; justify-content: center; min-width: 0; }
+.figure img { width: 100%; height: auto; max-height: 62vmin; display: block; }
+
+/* Stack on a narrow screen, where a split would squeeze both halves. */
+@media (max-aspect-ratio: 1/1) {
+  .slide.has-image { grid-template-columns: 1fr; }
+  .figure img { max-height: 34vmin; }
+}
+
+.progress {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 3px;
+  background: rgba(255, 255, 255, .04);
+  z-index: 2;
+}
+.progress span {
+  display: block; height: 100%; width: 0;
+  background: linear-gradient(90deg, var(--teal), var(--accent));
+  transition: width .25s ease;
+}
 
 .stage-badge {
   position: absolute; right: 14px; bottom: 12px;

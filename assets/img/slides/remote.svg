@@ -1,0 +1,29 @@
+<svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The Nesso N1 with its two keys labelled next and previous">
+  <rect x="150" y="16" width="120" height="208" rx="18" fill="#132023" stroke="#22383d" stroke-width="2"/>
+  <rect x="166" y="34" width="88" height="146" rx="7" fill="#0c1416" stroke="#22383d"/>
+
+  <!-- what the remote shows -->
+  <!-- Values only: at projector scale the tiny labels were unreadable and
+       collided with the numbers. -->
+  <text x="210" y="58" text-anchor="middle" fill="#e6f1f2" font-family="system-ui,sans-serif" font-size="19" font-weight="600">5 / 8</text>
+  <line x1="176" y1="70" x2="244" y2="70" stroke="#22383d"/>
+  <text x="210" y="92" text-anchor="middle" fill="#37d6e0" font-family="system-ui,sans-serif" font-size="19" font-weight="600">4:12</text>
+  <rect x="176" y="104" width="68" height="26" rx="5" fill="#1b2b2f"/>
+  <text x="186" y="121" fill="#37d6e0" font-family="system-ui,sans-serif" font-size="15">−</text>
+  <text x="210" y="121" text-anchor="middle" fill="#e6f1f2" font-family="system-ui,sans-serif" font-size="14">5</text>
+  <text x="232" y="121" fill="#37d6e0" font-family="system-ui,sans-serif" font-size="15">+</text>
+  <rect x="176" y="140" width="68" height="24" rx="5" fill="#1b2b2f"/>
+  <text x="184" y="156" fill="#7d9ea4" font-family="system-ui,sans-serif" font-size="10">Pointer</text>
+  <rect x="222" y="145" width="18" height="14" rx="7" fill="#4cc38a"/>
+
+  <!-- keys -->
+  <circle cx="164" cy="204" r="9" fill="#1b2b2f" stroke="#22383d"/>
+  <circle cx="256" cy="204" r="9" fill="#1b2b2f" stroke="#22383d"/>
+
+  <path d="M150 204H96" stroke="#22383d" stroke-width="1.5" stroke-dasharray="3 4"/>
+  <path d="M270 204h54" stroke="#22383d" stroke-width="1.5" stroke-dasharray="3 4"/>
+  <text x="88" y="200" text-anchor="end" fill="#e6f1f2" font-family="system-ui,sans-serif" font-size="14">KEY1</text>
+  <text x="88" y="217" text-anchor="end" fill="#7d9ea4" font-family="system-ui,sans-serif" font-size="12">next</text>
+  <text x="332" y="200" fill="#e6f1f2" font-family="system-ui,sans-serif" font-size="14">KEY2</text>
+  <text x="332" y="217" fill="#7d9ea4" font-family="system-ui,sans-serif" font-size="12">back</text>
+</svg>
