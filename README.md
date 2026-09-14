@@ -27,32 +27,34 @@ from the same firmware.
 | --- | --- |
 | **KEY1**, the large button on the face | next slide |
 | **KEY2**, on the edge | previous slide |
-| **hold KEY1** (0.8 s) | fullscreen — see the caveat below |
+| **hold KEY1** (0.8 s) | present mode — the slide fills the window |
 | Tilt | moves the pointer |
 | `Jump` on its screen | go to any slide |
 | `Recentre` on its screen | take the current attitude as centre |
 | `Pointer`, `Sensitivity` | pointer on/off, and how far a tilt travels |
 
-**Fullscreen from the remote cannot be guaranteed, and that is the web platform,
-not a bug here.** `requestFullscreen()` is only granted off a user gesture *in the
+### Why the hold gives present mode and not real fullscreen
+
+**Real fullscreen from the remote cannot be granted, and that is the web platform,
+not a bug here.** `requestFullscreen()` is only honoured off a user gesture *in the
 page*; a request arriving over a socket is not one, so the browser refuses it. The
 firmware and the link are fine — measured, a hold produces `long_press` 810 ms after
 `press` and the App asks immediately.
 
-So the hold does two things:
+Present mode is the part that needs no permission: the topbar stays, everything
+else — controls, the up-next strip, the page margins — goes, and the slide grows to
+fill the window under it. The remote can turn it on and off as often as you like.
 
-- **Leaving** fullscreen needs no permission and always works. The remote can
-  reliably get you out.
-- **Entering** arms it: the deck shows "Fullscreen is ready — press any key or
-  click here", and the next touch or keypress at the laptop carries it through.
-  The prompt clears itself after twelve seconds.
-
-If you would rather not touch the laptop at all, start the browser already
-fullscreen and never toggle it:
+Real fullscreen is still there from the laptop: the **Present** button and `f`
+take both at once, and leaving fullscreen (Escape) leaves present mode with it.
+To start with no chrome at all and never touch the laptop:
 
 ```bash
-chromium --kiosk http://<board-ip>:7000
+chromium --kiosk 'http://<board-ip>:7000/#present'
 ```
+
+The `#present` hash opens the deck already filled, which is what you want on a
+projector.
 
 KEY1 gets the action you do most because it is the big one under your thumb.
 Recentring is a screen button rather than a long press: holding a key mid-sentence
@@ -61,7 +63,7 @@ is awkward, and a button can say what it does.
 | In the browser | |
 | --- | --- |
 | `←` `→` `space` `PageUp/Down` | change slide |
-| `f` or `b` | fullscreen |
+| `f` or `b` | fullscreen + present mode |
 | `p` | pointer |
 | `r` | recentre the pointer |
 

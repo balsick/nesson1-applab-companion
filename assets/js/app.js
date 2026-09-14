@@ -234,53 +234,46 @@ $("toggle-pointer").onclick = () => send("pointer");
 $("timer").onclick = () => send("timer");
 $("reset").onclick = () => send("reset");
 $("fullscreen").onclick = toggleFullscreen;
+$("toggle-present").onclick = togglePresent;
 
-function toggleFullscreen(fromRemote = false) {
-  const stage = $("stage");
+// Real fullscreen needs a user gesture in the page, so the remote cannot ask for
+// it. Present mode is the part that does not: it is only CSS, so it always works,
+// and it gets the deck to fill everything below the status bar.
+function setPresent(on) {
+  document.body.classList.toggle("present", on);
+  $("toggle-present").classList.toggle("active", on);
+  $("toggle-present").textContent = on ? "Exit present" : "Present";
+}
+
+function togglePresent() {
+  setPresent(!document.body.classList.contains("present"));
+}
+
+// The button and the f key are real gestures, so they can have the real thing —
+// and present mode with it, since fullscreen with the controls still showing
+// would be odd.
+function toggleFullscreen() {
   if (document.fullscreenElement) {
-    // Leaving never needs permission, so the remote can always get you out.
     document.exitFullscreen();
     return;
   }
-  const entering = stage.requestFullscreen?.();
-  // Browsers only grant fullscreen off a user gesture in the page, and a request
-  // arriving over a socket is not one. Rather than fail silently, arm it: the
-  // very next touch or keypress anywhere in the page carries it through.
-  if (entering && fromRemote) entering.catch(armFullscreen);
+  setPresent(true);
+  $("stage").requestFullscreen?.().catch(() => {});
 }
 
-let fullscreenArmed = false;
-
-function armFullscreen() {
-  if (fullscreenArmed) return;
-  fullscreenArmed = true;
-  toast("Fullscreen is ready — press any key or click here");
-
-  const go = () => {
-    disarm();
-    $("stage").requestFullscreen?.().catch(() => {});
-  };
-  const disarm = () => {
-    fullscreenArmed = false;
-    hideToast();
-    window.removeEventListener("keydown", go, true);
-    window.removeEventListener("pointerdown", go, true);
-  };
-
-  window.addEventListener("keydown", go, { capture: true, once: true });
-  window.addEventListener("pointerdown", go, { capture: true, once: true });
-  // Do not leave the prompt sitting there forever if nobody is at the laptop.
-  setTimeout(() => { if (fullscreenArmed) disarm(); }, 12000);
-}
+// Leaving fullscreen by Escape should not strand the deck in present mode.
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement) setPresent(false);
+});
 
 let toastTimer = null;
-function toast(text, ms = 0) {
+function toast(text, ms = 3200) {
   const el = $("toast");
   if (!el) return;
   el.textContent = text;
   el.hidden = false;
   clearTimeout(toastTimer);
-  if (ms) toastTimer = setTimeout(hideToast, ms);
+  toastTimer = setTimeout(hideToast, ms);
 }
 function hideToast() {
   clearTimeout(toastTimer);
@@ -311,6 +304,10 @@ function applyLink(link) {
   }
 }
 
+// Opening the deck at .../#present starts it filled, which is what you want for
+// a bookmark pointed at the projector.
+if (location.hash === "#present") setPresent(true);
+
 socket.on("connect", () => {
   fetch("api/state").then((r) => r.json()).then(applyLink).catch(() => {});
 });
@@ -321,4 +318,5 @@ socket.on("show", (payload) => {
   renderDeck();
 });
 socket.on("tick", renderTick);
-socket.on("fullscreen", () => toggleFullscreen(true));
+// The remote asks for present mode, which never gets refused.
+socket.on("fullscreen", () => togglePresent());

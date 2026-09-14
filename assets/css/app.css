@@ -84,6 +84,42 @@ body {
 .clock { font-size: 19px; }
 .clock.running { color: var(--accent); }
 
+/* --- Present mode --------------------------------------------------------
+   Everything below the status bar becomes the slide. Needs no permission from
+   the browser, which is the whole point: the remote can ask for this, and it
+   cannot ask for real fullscreen. */
+
+body.present { height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
+body.present .topbar { flex: 0 0 auto; }
+body.present main {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-width: none;
+  /* The windowed rule centres main with `margin: 0 auto`. An auto cross-axis
+     margin cancels the stretch a flex item would otherwise get, so main would
+     shrink to its content instead of spanning the window. */
+  margin: 0;
+  padding: 12px 14px 14px;
+  display: grid;
+  /* stretch, not center: a centred grid item keeps its content height, so the
+     stage never grows into the space we just freed. Centring happens inside
+     .stage-wrap instead. */
+  place-items: stretch;
+}
+body.present .controls,
+body.present .upnext { display: none; }
+/* The wrapper has to end up with a DEFINITE height, or the stage's height:100%
+   has nothing to resolve against - and the stage cannot fall back on its own
+   content, because container-type:size makes it ignore it. It gets one by
+   inheritance: body is 100dvh, main is the stretching flex item, and the
+   wrapper is a stretched grid item inside it. No magic chrome constant needed. */
+body.present .stage-wrap {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+}
+body.present .stage { height: 100%; width: auto; max-width: 100%; }
+
 /* --- Stage --------------------------------------------------------------- */
 
 main { max-width: 1180px; margin: 0 auto; padding: 18px 22px 32px; }
