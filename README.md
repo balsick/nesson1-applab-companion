@@ -27,10 +27,17 @@ from the same firmware.
 | --- | --- |
 | **KEY1**, the large button on the face | next slide |
 | **KEY2**, on the edge | previous slide |
+| **hold KEY1** (0.8 s) | fullscreen — see the caveat below |
 | Tilt | moves the pointer |
 | `Jump` on its screen | go to any slide |
 | `Recentre` on its screen | take the current attitude as centre |
 | `Pointer`, `Sensitivity` | pointer on/off, and how far a tilt travels |
+
+**Fullscreen from the remote is best-effort.** Browsers only grant fullscreen off a
+user gesture *in the page*, and a message arriving over a socket is not one. Leaving
+fullscreen always works, so the remote can reliably get you out; entering may be
+refused, in which case the deck says "Press F here to go fullscreen" rather than
+appearing to ignore you. Click the page once and it generally sticks.
 
 KEY1 gets the action you do most because it is the big one under your thumb.
 Recentring is a screen button rather than a long press: holding a key mid-sentence

@@ -240,6 +240,12 @@ def reset_timer() -> None:
 def on_key1(action: str, name, ts, device) -> None:
     if action == "click":
         step(+1, source=f"KEY1 on {device.name}")
+    elif action == "long_press":
+        # The browser decides whether this is allowed: entering fullscreen needs
+        # a recent user gesture in the page, which a message off a socket is not.
+        # The browser falls back to prompting rather than failing silently.
+        logger.info(f"fullscreen asked for by {device.name}")
+        ui.send_message("fullscreen", {"source": device.name})
 
 
 @companion.on("button_2")

@@ -235,10 +235,30 @@ $("timer").onclick = () => send("timer");
 $("reset").onclick = () => send("reset");
 $("fullscreen").onclick = toggleFullscreen;
 
-function toggleFullscreen() {
+function toggleFullscreen(fromRemote = false) {
   const stage = $("stage");
-  if (document.fullscreenElement) document.exitFullscreen();
-  else stage.requestFullscreen?.().catch(() => {});
+  if (document.fullscreenElement) {
+    // Leaving never needs permission, so the remote can always get you out.
+    document.exitFullscreen();
+    return;
+  }
+  const entering = stage.requestFullscreen?.();
+  if (entering && fromRemote) {
+    // Browsers only grant fullscreen off a user gesture in the page. A request
+    // arriving over a socket usually is not one, so say so instead of doing
+    // nothing at all.
+    entering.catch(() => toast("Press F here to go fullscreen"));
+  }
+}
+
+let toastTimer = null;
+function toast(text) {
+  const el = $("toast");
+  if (!el) return;
+  el.textContent = text;
+  el.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.hidden = true; }, 4000);
 }
 
 document.addEventListener("keydown", (event) => {
@@ -274,3 +294,4 @@ socket.on("show", (payload) => {
   renderDeck();
 });
 socket.on("tick", renderTick);
+socket.on("fullscreen", () => toggleFullscreen(true));

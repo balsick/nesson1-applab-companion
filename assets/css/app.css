@@ -231,6 +231,20 @@ main { max-width: 1180px; margin: 0 auto; padding: 18px 22px 32px; }
   .figure img { max-height: 32cqmin; }
 }
 
+.toast {
+  position: absolute;
+  left: 50%; bottom: 8%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: clamp(12px, 2.2cqmin, 19px);
+  z-index: 5;
+  white-space: nowrap;
+}
+
 .progress {
   position: absolute; left: 0; right: 0; bottom: 0;
   height: 3px;
