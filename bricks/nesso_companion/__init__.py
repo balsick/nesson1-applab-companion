@@ -10,7 +10,7 @@ Import the brick from the App's ``python/main.py``::
 See ``README.md`` in this folder for the full API and the wire protocol.
 """
 
-from .companion import NessoCompanion
+from .companion import Device, NessoCompanion
 from .protocol import (
     ACCELEROMETER,
     BATTERY,
@@ -33,5 +33,6 @@ __all__ = [
     "ORIENTATION",
     "PROTOCOL_VERSION",
     "SENSOR_NAMES",
+    "Device",
     "NessoCompanion",
 ]

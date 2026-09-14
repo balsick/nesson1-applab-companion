@@ -299,8 +299,8 @@ def link_state() -> dict:
 
 @companion.on_connect
 def on_nesso_connected(device: dict) -> None:
-    logger.info(f"Nesso connected: {device.get('name')} at {device.get('address')}")
-    log_event("link", "connected", f"{device.get('name')} @ {device.get('address')}")
+    logger.info(f"Nesso connected: {device.name} at {device.address}")
+    log_event("link", "connected", f"{device.name} @ {device.address}")
     companion.send_value("board", companion.name)
     companion.send_value("browsers", len(browsers))
     ui.send_message("link", link_state())
@@ -308,7 +308,7 @@ def on_nesso_connected(device: dict) -> None:
 
 @companion.on_disconnect
 def on_nesso_disconnected(device: dict) -> None:
-    log_event("link", "disconnected", str(device.get("name")))
+    log_event("link", "disconnected", device.name)
     ui.send_message("link", link_state())
 
 
