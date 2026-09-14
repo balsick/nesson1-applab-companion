@@ -10,3 +10,8 @@ bricks:
         NESSO_PORT: "8077"
         NESSO_NAME: "Nesso N1 Companion"
         NESSO_DEFAULT_RATE_HZ: "10"
+        # Check an attached Nesso against nesso-firmware/build at start-up and
+        # update it if it differs. OFF unless you mean it: probing resets
+        # whatever ESP32 is on the port, and the USB ids cannot tell a Nesso
+        # from any other Espressif board.
+        NESSO_AUTOFLASH: "false"

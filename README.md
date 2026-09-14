@@ -148,11 +148,12 @@ the Nesso's screen.
 
 Ideas that are investigated but deliberately not built.
 
-### Flash the Nesso from the App at startup
+### ~~Flash the Nesso from the App at startup~~ — built, see the brick README
 
-Provision an attached Nesso during App start: find it on serial, check what
-firmware it is running, and flash it if it is missing or out of date. All four
-prerequisites were tested and hold:
+Built and verified on hardware: 21 s to update an out-of-date Nesso, 0.75 s to
+confirm a current one, on a background thread so start-up never waits.
+`NESSO_AUTOFLASH` defaults to **false** for the reason below. The prerequisites
+that were checked first:
 
 | Prerequisite | Finding |
 | --- | --- |

@@ -7,7 +7,7 @@
 // --- Protocol -------------------------------------------------------------
 // Must match PROTOCOL_VERSION in bricks/nesso_companion/protocol.py.
 #define NESSO_PROTOCOL_VERSION 1
-#define NESSO_FIRMWARE_VERSION "1.0.0"
+#define NESSO_FIRMWARE_VERSION "1.1.0"
 
 // Default TCP port of the companion brick. Overridable from the setup portal
 // and then stored in NVS, for Apps that move the brick to another port.
