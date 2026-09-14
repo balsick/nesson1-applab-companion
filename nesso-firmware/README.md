@@ -200,8 +200,19 @@ first, with a green dot, and dims the rest. If you pick one anyway:
 
 The backlight is the largest single load on the battery, and `LCD_BACKLIGHT` is
 an expander pin — on or off, with no PWM to dim it. So the screen simply blanks
-after `SCREEN_IDLE_MS` (60 s) with no touch and no key, and the redraw is skipped
-entirely while it is dark, which saves the full-frame SPI push as well.
+after a period with no touch and no key, and the redraw is skipped entirely
+while it is dark, which saves the full-frame SPI push as well.
+
+**The App decides how long**, like everything else: `screen_idle_s` rides along
+in the handshake, from the `NESSO_SCREEN_IDLE_S` brick variable or the
+`screen_idle_s` constructor argument, defaulting to 60 s. Zero keeps the screen
+lit. `SCREEN_IDLE_MS` in `config.h` is only the fallback for a Nesso that has
+not linked yet, and the `idle` console command overrides locally until the next
+handshake.
+
+**Never during Wi-Fi setup.** That screen carries the SSID and the QR code, and
+the way to wake it again would be to touch a screen you can no longer read, so
+the idle timer is held off in that state entirely.
 
 The two kinds of input are treated differently on purpose:
 

@@ -179,6 +179,8 @@ static void applyConfig(JsonDocument& doc) {
   gConfig.clear();
   gConfig.revision = doc["rev"] | 0;
   gConfig.appName = String(doc["app"] | "Arduino App");
+  // An App that knows it will be glanced at can ask for a longer idle, or none.
+  gConfig.screenIdleMs = (uint32_t)(doc["screen_idle_s"] | (int)(SCREEN_IDLE_MS / 1000)) * 1000UL;
 
   for (JsonObjectConst item : doc["sensors"].as<JsonArrayConst>()) {
     if (gConfig.sensorCount >= MAX_SENSORS) break;

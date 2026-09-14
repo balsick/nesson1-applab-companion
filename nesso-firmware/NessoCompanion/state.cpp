@@ -13,6 +13,7 @@ void CompanionConfig::clear() {
   modulinoCount = 0;
   wantsButton[0] = false;
   wantsButton[1] = false;
+  screenIdleMs = SCREEN_IDLE_MS;
   for (uint8_t i = 0; i < MAX_SENSORS; i++) {
     sensors[i] = SensorSub();
   }

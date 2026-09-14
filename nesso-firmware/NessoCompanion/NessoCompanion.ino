@@ -102,6 +102,12 @@ static void onHandshake() {
     if (name.startsWith("accelerometer") || name == "pitch" || name == "roll") wantAccel = true;
     if (name.startsWith("gyroscope")) wantGyro = true;
   }
+  // The App's idle preference arrives with the handshake; the console can still
+  // override it afterwards for debugging.
+  idleAfterMs = gConfig.screenIdleMs;
+  Serial.printf("[screen] App asked for idle after %lus\n",
+                (unsigned long)(idleAfterMs / 1000));
+
   hw::enableImu(wantAccel, wantGyro);
   hw::beginModulinos();
   companion::sendModulinoStatus();
@@ -424,8 +430,8 @@ static void printStatus() {
                 net::isConnected() ? net::localIp().c_str() : "-", companionPort, gBoardCount,
                 companion::isConnected() ? "up" : "down",
                 companion::handshakeDone() ? "done" : "pending");
-  Serial.printf("[status] battery %.0f%% %.3fV charger=%s\n", hw::batteryLevel(),
-                hw::batteryVoltage(), hw::chargeStatusName());
+  Serial.printf("[status] battery %.0f%% %.3fV %.1fmA charger=%s\n", hw::batteryLevel(),
+                hw::batteryVoltage(), hw::batteryCurrentMa(), hw::chargeStatusName());
   Serial.printf("[status] screen %s, idle after %lus\n", hw::backlightOn() ? "awake" : "dark",
                 (unsigned long)(idleAfterMs / 1000));
 
@@ -638,7 +644,11 @@ void loop() {
   // Blank the screen once it has been left alone for long enough. millis(), not
   // the micros() above: micros() wraps every 71 minutes, which is well inside
   // the length of a talk, and the two timebases diverge from that point on.
-  if (idleAfterMs && hw::backlightOn() && millis() - lastInputMs > idleAfterMs) {
+  // Never during setup: that screen carries the SSID and the QR code, and the
+  // way to wake it again is to touch a screen you can no longer read.
+  if (state == ST_PROVISION) {
+    lastInputMs = millis();
+  } else if (idleAfterMs && hw::backlightOn() && millis() - lastInputMs > idleAfterMs) {
     hw::setBacklight(false);
   }
 

@@ -265,6 +265,7 @@ bool readStandardValue(const String& name, float& out) {
 
 static float battLevel = 0;
 static float battVolts = 0;
+static float battMilliAmps = 0;
 static uint32_t lastBatteryMs = 0;
 
 void pollBattery() {
@@ -273,10 +274,12 @@ void pollBattery() {
   lastBatteryMs = now;
   battLevel = (float)battery.getChargeLevel();
   battVolts = battery.getVoltage();
+  battMilliAmps = battery.getCurrent() * 1000.0f;
 }
 
 float batteryLevel() { return battLevel; }
 float batteryVoltage() { return battVolts; }
+float batteryCurrentMa() { return battMilliAmps; }
 
 const char* chargeStatusName() {
   switch (battery.getChargeStatus()) {
@@ -307,8 +310,8 @@ void dumpCharger() {
   static const char* NAMES[] = {"INPUT_SRC",  "POWER_ON_CFG",  "CHG_CURRENT", "TERM_CURRENT",
                                 "CHG_VOLTAGE", "TIMER_WD",     "MAIN_CTRL",   "SYS_CTRL",
                                 "SYS_STATUS", "FAULT_STATUS",  "CHIP_ID"};
-  Serial.printf("[charger] status=%s  battery %.0f%% %.3fV\n", chargeStatusName(), battLevel,
-                battVolts);
+  Serial.printf("[charger] status=%s  battery %.0f%% %.3fV %.1fmA\n", chargeStatusName(),
+                battLevel, battVolts, battMilliAmps);
   for (uint8_t reg = 0; reg <= 0x0A; reg++) {
     uint8_t v = readChargerReg(reg);
     Serial.printf("[charger]   0x%02X %-13s = 0x%02X  %c%c%c%c%c%c%c%c\n", reg, NAMES[reg], v,

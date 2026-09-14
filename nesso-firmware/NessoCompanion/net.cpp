@@ -285,8 +285,6 @@ static void addBoard(const String& hostname, const String& ip, uint16_t port) {
   entry.port = port;
   entry.appName = "";
   entry.hasCompanion = probeCompanion(ip, port, entry.appName);
-  Serial.printf("[net]   %s (%s) companion=%s %s\n", entry.hostname.c_str(), entry.ip.c_str(),
-                entry.hasCompanion ? "yes" : "no", entry.appName.c_str());
   gBoardCount++;
 }
 
@@ -330,6 +328,15 @@ uint8_t discoverBoards(uint16_t companionPort) {
       j--;
     }
     gBoards[j + 1] = entry;
+  }
+
+  // Logged only now, in the order the picker will actually show them. Printing
+  // during discovery showed the order before the sort, which is misleading when
+  // `connect <n>` takes an index into this list.
+  for (uint8_t i = 0; i < gBoardCount; i++) {
+    Serial.printf("[net]   %u %s (%s) companion=%s %s\n", i, gBoards[i].hostname.c_str(),
+                  gBoards[i].ip.c_str(), gBoards[i].hasCompanion ? "yes" : "no",
+                  gBoards[i].appName.c_str());
   }
 
   return gBoardCount;

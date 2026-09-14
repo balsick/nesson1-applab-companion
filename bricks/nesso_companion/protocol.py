@@ -42,7 +42,9 @@ INFO_PATH = "/info"
 ACCELEROMETER = ("accelerometerX", "accelerometerY", "accelerometerZ")
 GYROSCOPE = ("gyroscopeX", "gyroscopeY", "gyroscopeZ")
 ORIENTATION = ("pitch", "roll")
-BATTERY = ("batteryLevel", "batteryVoltage")
+# batteryCurrent is signed milliamps, negative while discharging: it is what
+# lets an App turn charge into remaining runtime.
+BATTERY = ("batteryLevel", "batteryVoltage", "batteryCurrent")
 
 SENSOR_NAMES = frozenset(ACCELEROMETER + GYROSCOPE + ORIENTATION + BATTERY)
 

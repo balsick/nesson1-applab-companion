@@ -61,6 +61,10 @@ struct CompanionConfig {
 
   bool wantsButton[2] = {false, false};
 
+  // How long the Nesso waits before blanking its screen, as asked for by the
+  // App. Zero means never.
+  uint32_t screenIdleMs = SCREEN_IDLE_MS;
+
   Widget widgets[MAX_WIDGETS];
   uint8_t widgetCount = 0;
 

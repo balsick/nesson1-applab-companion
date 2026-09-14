@@ -73,6 +73,9 @@ bool readStandardValue(const String& name, float& out);
 void pollBattery();
 float batteryLevel();
 float batteryVoltage();
+// Signed, in milliamps: negative while the pack is being drained. This is what
+// turns "how full is it" into "how long have I got".
+float batteryCurrentMa();
 // Charger state straight from the AW32001, plus a raw register dump, because
 // "is it charging?" should be answerable without guessing.
 const char* chargeStatusName();
