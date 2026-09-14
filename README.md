@@ -130,20 +130,69 @@ the Nesso's screen.
 
 ## Where the phases go next
 
-Phase 1 is the one that is built. The brick and the firmware already carry what
-the rest needs:
-
-- **Phase 2 — presentation remote.** `on("button_1")` → next slide,
-  `on("button_2")` → previous, `on("accelerometerX"/"Y")` → move a cursor. Add a
-  slide deck to the Web UI and a `slide` stepper on the Nesso screen (already
-  registered here) so the Nesso can jump around too.
-- **Phase 3 — Modulino Pixels.** Plug a Modulino Pixels into the Nesso's Qwiic
-  connector and call `companion.send_modulino("pixels", [(r, g, b)] * 8)`. The
-  outbound path and the firmware handler both exist; it needs the hardware to
-  verify.
+- **Phase 1 — the link, end to end.** Done. Discovery, handshake, sensors,
+  buttons, screen widgets, Modulinos, all verified on hardware.
+- **Phase 2 — presentation remote.** The only phase still open. `on("button_1")`
+  → next slide, `on("button_2")` → previous, `pitch`/`roll` → move a cursor
+  (steadier than raw `accelerometerX/Y`). The groundwork is already in and
+  verified: both buttons fire, the IMU streams at 20 Hz, the `slide` stepper is
+  on the Nesso screen, and `send_value("slide", ...)` pushes the current slide
+  back. What is missing is the slide deck in the Web UI, the key wiring, and
+  smoothing on the cursor. **None of it touches the firmware**, so the iteration
+  loop is an App restart rather than a reflash.
+- **Phase 3 — Modulino Pixels.** Done, out of order, once the hardware arrived.
+  Writable three ways — automatically as a proximity bar from Distance, from the
+  Nesso's screen, and from the Web UI — with `LED level` for brightness.
 - **Phase 4 — to be defined.**
 
-## Notes
+## Backlog
+
+Ideas that are investigated but deliberately not built.
+
+### Flash the Nesso from the App at startup
+
+Provision an attached Nesso during App start: find it on serial, check what
+firmware it is running, and flash it if it is missing or out of date. All four
+prerequisites were tested and hold:
+
+| Prerequisite | Finding |
+| --- | --- |
+| The container can see serial | `/dev` is bind-mounted read-write, and `DeviceCgroupRules` grants `c 166:* rmw` — the ttyACM major |
+| It can write to it | the container user is in `dialout`, and `/dev/ttyACM0` is writable |
+| It can read the version | a reset plus a two-second read returns the boot banner, `[nesso] companion 1.0.0`, from inside the container |
+| It can flash | `esptool` 5.4.0 installs into the App venv and imports |
+
+The version probe needs no new protocol: the firmware already prints its version
+at boot. Flashing needs four artifacts committed to the repo — bootloader
+(20 KB), partitions (3 KB), boot_app0 (8 KB) and the application (1.4 MB).
+
+**It must be opt-in.** Probing resets whatever ESP32 is attached, and VID:PID
+`303a:1001` identifies "an Espressif USB device", not "a Nesso N1" — so an
+unrelated board on the same port would be reset, and potentially erased. The
+brick should therefore take a flag that defaults to **off**:
+
+```yaml
+bricks:
+  - nesso_companion:
+      variables:
+        NESSO_AUTOFLASH: "false"   # default; only ever set true deliberately
+```
+
+Open questions before building it: keeping `NESSO_FIRMWARE_VERSION` in step with
+the committed binaries (otherwise it re-flashes forever, or never), and whether
+build output belongs in git at all. Note also that the serial console can drop a
+byte right after a reset, so the banner parser has to be tolerant rather than
+assume a clean buffer.
+
+### Blank the screen when idle
+
+The Nesso cannot charge while running: it draws more than the USB port supplies,
+so the charger sits in supplement mode and the battery drains anyway. The
+backlight is the largest load, and `LCD_BACKLIGHT` is an on/off expander pin, so
+blanking the screen after a period with no touch or key — waking on either —
+would cut it substantially. Worth doing for battery life regardless of charging.
+
+## Notes## Notes
 
 - `python/requirements.txt` is deliberately empty: the brick declares its own
   dependency (`websockets`) in `bricks/nesso_companion/requirements.txt`, which
