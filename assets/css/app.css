@@ -1,0 +1,188 @@
+:root {
+  --bg: #0c1416;
+  --panel: #132023;
+  --panel-2: #1b2b2f;
+  --line: #22383d;
+  --text: #e6f1f2;
+  --muted: #7d9ea4;
+  --teal: #00979d;
+  --accent: #37d6e0;
+  --green: #4cc38a;
+  --red: #e8595b;
+  --orange: #e8a33d;
+}
+
+* { box-sizing: border-box; }
+
+/* An author `display` rule beats the UA stylesheet's rule for [hidden], so
+   toggling el.hidden silently does nothing on anything that sets display -
+   which is exactly what happened to the blanking overlay. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.55 "Open Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* --- Top bar ------------------------------------------------------------- */
+
+.topbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 28px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 22px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.topbar h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .2px; }
+
+.readouts { display: flex; gap: 26px; align-items: center; flex-wrap: wrap; }
+.readout { display: flex; align-items: center; gap: 10px; }
+.readout b { display: block; font-size: 15px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.readout small { display: block; color: var(--muted); font-size: 11px; }
+
+.dot {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 3px rgba(232, 89, 91, .15);
+  transition: background .2s, box-shadow .2s;
+  flex: none;
+}
+.dot.on { background: var(--green); box-shadow: 0 0 0 3px rgba(76, 195, 138, .18); }
+
+/* A battery outline that fills, because a bar reads faster than a number. */
+.cell {
+  position: relative;
+  width: 30px; height: 15px;
+  border: 1.5px solid var(--muted);
+  border-radius: 3px;
+  padding: 1.5px;
+  flex: none;
+}
+.cell::after {
+  content: "";
+  position: absolute; right: -4px; top: 4px;
+  width: 2.5px; height: 5px;
+  background: var(--muted);
+  border-radius: 0 2px 2px 0;
+}
+.cell-fill {
+  display: block; height: 100%; width: 0;
+  background: var(--green);
+  border-radius: 1px;
+  transition: width .4s, background .4s;
+}
+.readout.low .cell-fill { background: var(--red); }
+.readout.low b { color: var(--red); }
+.readout.stale { opacity: .45; }
+
+.clock { font-size: 19px; }
+.clock.running { color: var(--accent); }
+
+/* --- Stage --------------------------------------------------------------- */
+
+main { max-width: 1180px; margin: 0 auto; padding: 18px 22px 32px; }
+
+.stage-wrap { position: relative; }
+
+.stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(160deg, #14262b, #0d1a1d);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+/* In fullscreen the aspect box would letterbox twice over. */
+.stage:fullscreen { aspect-ratio: auto; width: 100%; height: 100%; border-radius: 0; }
+
+.slide {
+  position: absolute; inset: 0;
+  padding: 7% 8%;
+  display: flex; flex-direction: column; justify-content: center;
+  gap: 2.2vmin;
+}
+.slide h2 {
+  margin: 0 0 1vmin;
+  font-size: clamp(22px, 5.2vmin, 60px);
+  line-height: 1.12;
+  color: var(--accent);
+  font-weight: 600;
+}
+.slide p { margin: 0; font-size: clamp(14px, 2.6vmin, 30px); color: var(--text); }
+.slide ul { margin: 0; padding-left: 1.2em; display: grid; gap: 1.1vmin; }
+.slide li { font-size: clamp(14px, 2.6vmin, 30px); }
+.slide strong { color: var(--accent); font-weight: 600; }
+
+.stage-badge {
+  position: absolute; right: 14px; bottom: 12px;
+  color: var(--line);
+  font-size: clamp(11px, 1.6vmin, 16px);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The pointer is driven from tilt, so it must not have a CSS transition
+   fighting the smoothing already applied in Python. */
+.pointer {
+  position: absolute;
+  width: 22px; height: 22px;
+  margin: -11px 0 0 -11px;
+  border-radius: 50%;
+  background: rgba(232, 89, 91, .92);
+  box-shadow: 0 0 14px 5px rgba(232, 89, 91, .35);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.blanked {
+  position: absolute; inset: 0;
+  background: #000;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 4;
+}
+.blanked span { color: #1d1d1d; font-size: 13px; letter-spacing: .28em; text-transform: uppercase; }
+
+/* --- Controls ------------------------------------------------------------ */
+
+.controls {
+  display: flex; flex-wrap: wrap; gap: 12px 26px;
+  align-items: center; justify-content: space-between;
+  margin-top: 14px;
+}
+.group { display: flex; align-items: center; gap: 9px; }
+
+button {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 15px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+button:hover { border-color: var(--teal); }
+button.active { border-color: var(--accent); color: var(--accent); }
+button.quiet { color: var(--muted); }
+
+.counter { min-width: 76px; text-align: center; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+/* --- Up next ------------------------------------------------------------- */
+
+.upnext { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 16px; }
+.upnext h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .9px; color: var(--accent); margin: 0 0 6px; }
+.upnext p { margin: 0 0 8px; }
+#upnext-title { font-size: 17px; }
+.hint { color: var(--muted); font-size: 12.5px; }
+.hint b { color: var(--text); font-weight: 600; }
+
+@media (max-width: 640px) {
+  .readouts { gap: 16px; }
+  .controls { justify-content: flex-start; }
+}

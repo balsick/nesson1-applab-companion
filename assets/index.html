@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nesso Presenter</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<header class="topbar">
+  <h1>Nesso Presenter</h1>
+
+  <!-- The three things you actually glance at mid-talk. -->
+  <div class="readouts">
+    <div class="readout" id="remote-readout">
+      <span class="dot" id="link-dot"></span>
+      <div>
+        <b id="link-name">no remote</b>
+        <small id="link-note">waiting for a Nesso</small>
+      </div>
+    </div>
+
+    <div class="readout" id="battery-readout">
+      <div class="cell"><span class="cell-fill" id="battery-fill"></span></div>
+      <div>
+        <b id="battery-volts">&mdash;</b>
+        <small id="battery-note">remote battery</small>
+      </div>
+    </div>
+
+    <div class="readout">
+      <div>
+        <b id="clock" class="clock">0:00</b>
+        <small id="clock-note">stopped</small>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- The projected surface. Goes fullscreen on its own. -->
+  <div class="stage-wrap">
+    <div class="stage" id="stage">
+      <article class="slide" id="slide"></article>
+      <div class="pointer" id="pointer" hidden></div>
+      <div class="blanked" id="blanked" hidden><span>blanked</span></div>
+      <div class="stage-badge" id="stage-badge">1 / 1</div>
+    </div>
+  </div>
+
+  <section class="controls">
+    <div class="group">
+      <button id="prev" title="Previous slide (left arrow)">&larr;</button>
+      <span class="counter" id="counter">1 / 1</span>
+      <button id="next" title="Next slide (right arrow or space)">&rarr;</button>
+    </div>
+
+    <div class="group">
+      <button id="toggle-pointer" title="Pointer (p)">Pointer</button>
+      <button id="toggle-blank" title="Blank (b)">Blank</button>
+      <button id="fullscreen" title="Fullscreen (f)">Fullscreen</button>
+    </div>
+
+    <div class="group">
+      <button id="timer" title="Start or pause the clock">Start</button>
+      <button id="reset" class="quiet" title="Reset the clock">Reset</button>
+    </div>
+  </section>
+
+  <section class="upnext">
+    <h2>Up next</h2>
+    <p id="upnext-title">&mdash;</p>
+    <p class="hint">
+      On the remote: <b>KEY1</b> next, <b>KEY2</b> previous, <b>hold KEY1</b> blank,
+      <b>hold KEY2</b> recentre the pointer. Tilt to point.
+      In the browser: arrows, space, <b>b</b>, <b>p</b>, <b>f</b>.
+    </p>
+  </section>
+</main>
+
+<script src="js/vendor/socket.io.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
