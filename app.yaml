@@ -9,3 +9,6 @@ bricks:
       variables:
         NESSO_PORT: "8077"
         NESSO_NAME: "Nesso Presenter"
+        # You glance at the remote between slides rather than continuously, so
+        # give it longer than the 60 s default before the screen blanks.
+        NESSO_SCREEN_IDLE_S: "120"

@@ -140,6 +140,9 @@ class NessoCompanion:
         host: Bind address. Defaults to every interface.
         default_rate_hz: Streaming rate requested for sensors registered
             without an explicit ``rate_hz``.
+        screen_idle_s: How long the Nesso waits before blanking its screen. 0
+            keeps it lit. Defaults to the ``NESSO_SCREEN_IDLE_S`` brick
+            variable, then to 60.
     """
 
     def __init__(
@@ -148,6 +151,7 @@ class NessoCompanion:
         name: str | None = None,
         host: str = "0.0.0.0",
         default_rate_hz: int | None = None,
+        screen_idle_s: int | None = None,
     ) -> None:
         self.port = int(port) if port is not None else _env_int("NESSO_PORT", DEFAULT_PORT)
         self.host = host
@@ -158,6 +162,12 @@ class NessoCompanion:
             int(default_rate_hz)
             if default_rate_hz is not None
             else _env_int("NESSO_DEFAULT_RATE_HZ", 10)
+        )
+
+        self.screen_idle_s = (
+            int(screen_idle_s)
+            if screen_idle_s is not None
+            else _env_int("NESSO_SCREEN_IDLE_S", 60)
         )
 
         # Registrations. Guarded by _lock because an App may register from its
@@ -476,6 +486,7 @@ class NessoCompanion:
                 "port": self.port,
                 "url": self.url,
                 "connected": self.connected,
+                "screen_idle_s": self.screen_idle_s,
                 "device": self.device,
                 "sensors": sorted(self._sensors),
                 "buttons": sorted(self._buttons),
@@ -590,6 +601,7 @@ class NessoCompanion:
                 "proto": PROTOCOL_VERSION,
                 "rev": self._config_revision,
                 "app": self.name,
+                "screen_idle_s": self.screen_idle_s,
                 "sensors": [dict(s) for s in self._sensors.values()],
                 "buttons": [
                     {"name": name, "events": sorted(actions)}

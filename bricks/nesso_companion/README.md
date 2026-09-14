@@ -76,6 +76,7 @@ NessoCompanion(port=None, name=None, host="0.0.0.0", default_rate_hz=None)
 | `name` | `NESSO_NAME` env, else the App folder | Shown on the Nesso screen and in its board picker. |
 | `host` | `0.0.0.0` | Bind address. |
 | `default_rate_hz` | `NESSO_DEFAULT_RATE_HZ` env, else `10` | Rate for sensors registered without `rate_hz`. |
+| `screen_idle_s` | `NESSO_SCREEN_IDLE_S` env, else `60` | Seconds before the Nesso blanks its screen; `0` keeps it lit. Never applies during Wi-Fi setup. |
 
 The class is decorated with `@brick`, so instantiating it before `App.run()` is
 enough — the framework calls `start()` and `stop()` for you.
