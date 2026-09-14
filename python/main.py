@@ -232,16 +232,20 @@ def reset_timer() -> None:
 # button can say what it does.
 
 
+# The trailing `device` is optional: handlers that leave it out still work. With
+# two remotes in the room it is how you tell whose thumb moved the deck.
+
+
 @companion.on("button_1")
-def on_key1(action: str) -> None:
+def on_key1(action: str, name, ts, device) -> None:
     if action == "click":
-        step(+1, source="KEY1")
+        step(+1, source=f"KEY1 on {device.name}")
 
 
 @companion.on("button_2")
-def on_key2(action: str) -> None:
+def on_key2(action: str, name, ts, device) -> None:
     if action == "click":
-        step(-1, source="KEY2")
+        step(-1, source=f"KEY2 on {device.name}")
 
 
 # --- Pointer ---------------------------------------------------------------
@@ -364,8 +368,8 @@ def credits() -> dict:
         "buttons": described["buttons"],
         "widgets": [w["label"] for w in described["widgets"]],
         "modulinos": companion.modulinos,
-        "device": device.get("name"),
-        "firmware": device.get("fw"),
+        "device": device.name if device else None,
+        "firmware": device.firmware if device else None,
         "slides": len(deck),
         "from_remote": stats["from_remote"],
         "from_browser": stats["from_browser"],
@@ -415,7 +419,7 @@ def link_state() -> dict:
 
 @companion.on_connect
 def on_nesso_connected(device: dict) -> None:
-    logger.info(f"remote connected: {device.get('name')} at {device.get('address')}")
+    logger.info(f"remote connected: {device.name} at {device.address}")
     recentre()
     sync_widgets()
     ui.send_message("link", link_state())

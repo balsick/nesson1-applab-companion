@@ -29,6 +29,7 @@ import inspect
 import json
 import os
 import threading
+import time
 from collections.abc import Callable, Iterable, Mapping
 from typing import Any
 
@@ -118,6 +119,57 @@ class _Callbacks:
                 logger.exception(f"callback for {self._label} raised")
 
 
+class Device:
+    """One Nesso that is connected right now.
+
+    Sensor readings and Modulino presence live here rather than on the brick,
+    because they belong to a particular piece of hardware in a particular hand.
+    Screen widgets deliberately do not: they are declared by the App, and every
+    connected Nesso draws the same ones.
+    """
+
+    def __init__(self, companion: NessoCompanion, conn: ServerConnection, hello: dict[str, Any]):
+        self._companion = companion
+        self._conn = conn
+        self.id: str = str(hello.get("id") or f"anon-{id(conn):x}")
+        self.name: str = hello.get("name") or hello.get("device") or "Nesso N1"
+        self.kind: str = hello.get("device", "nesso-n1")
+        self.firmware: str | None = hello.get("fw")
+        self.caps: dict[str, Any] = hello.get("caps") or {}
+        peer = getattr(conn, "remote_address", None)
+        self.address: str | None = peer[0] if peer else None
+        self.connected_at: float = time.time()
+
+        self.values: dict[str, Any] = {}
+        self.modulinos: dict[str, bool] = {}
+
+    # Sending to one device rather than all of them is the whole point of
+    # having a handle on it.
+    def send_value(self, name: str, value: Any) -> bool:
+        return self._companion._send_value_to(self, name, value)
+
+    def send_values(self, values: Mapping[str, Any]) -> bool:
+        return self._companion._send_values_to(self, values)
+
+    def send_modulino(self, kind: str, value: Any) -> bool:
+        return self._companion._send_modulino_to(self, kind, value)
+
+    def describe(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "name": self.name,
+            "device": self.kind,
+            "fw": self.firmware,
+            "address": self.address,
+            "caps": self.caps,
+            "modulinos": dict(self.modulinos),
+            "values": dict(self.values),
+        }
+
+    def __repr__(self) -> str:
+        return f"<Device {self.name} ({self.id}) at {self.address}>"
+
+
 class _Widget:
     """A component the Nesso draws on its screen."""
 
@@ -205,11 +257,9 @@ class NessoCompanion:
         self._disconnect_cbs = _Callbacks("on_disconnect")
 
         # Runtime state.
-        self._values: dict[str, Any] = {}
+        # Connected devices, keyed by the id each one sends in its hello.
+        self._devices: dict[str, Device] = {}
         self._clients: set[ServerConnection] = set()
-        self._device: dict[str, Any] | None = None
-        # Which Modulinos the connected Nesso actually has plugged in.
-        self._modulino_presence: dict[str, bool] = {}
         self._config_revision = 0
         self._sent_revision: dict[int, int] = {}
 
@@ -467,6 +517,10 @@ class NessoCompanion:
             True if the frame was handed to a connected Nesso.
         """
         key = str(kind).strip().lower()
+        self._register_modulino_output(key)
+        return self._broadcast({"t": "modulino", "kind": key, "value": _jsonable(value)})
+
+    def _register_modulino_output(self, key: str) -> None:
         with self._lock:
             # Only a real change to the registration may bump the config
             # revision: this runs on every send, and re-sending the handshake
@@ -478,7 +532,6 @@ class NessoCompanion:
             elif entry["dir"] == "in":
                 entry["dir"] = "both"
                 self._touch_config()
-        return self._broadcast({"t": "modulino", "kind": key, "value": _jsonable(value)})
 
     # -- state -------------------------------------------------------------
 
@@ -488,20 +541,54 @@ class NessoCompanion:
         return bool(self._clients)
 
     @property
-    def device(self) -> dict[str, Any] | None:
-        """The ``hello`` payload of the connected Nesso, or None."""
-        return dict(self._device) if self._device else None
+    def devices(self) -> list[Device]:
+        """Every Nesso connected right now, in the order they arrived."""
+        with self._lock:
+            return sorted(self._devices.values(), key=lambda d: d.connected_at)
+
+    @property
+    def device(self) -> Device | None:
+        """The Nesso that has been connected longest, or None.
+
+        Convenient when there is only one, which is the usual case. With several
+        connected, use :attr:`devices` or the ``device`` argument that every
+        callback receives, rather than guessing that this is the right one.
+        """
+        found = self.devices
+        return found[0] if found else None
+
+    def device_by_id(self, device_id: str) -> Device | None:
+        """Looks a Nesso up by the id it reported in its hello."""
+        with self._lock:
+            return self._devices.get(device_id)
 
     @property
     def values(self) -> dict[str, Any]:
-        """Last received value for every subscribed sensor."""
+        """Last value of every subscribed sensor, merged across devices.
+
+        With one Nesso this is simply its readings. With several, later frames
+        overwrite earlier ones key by key, which is rarely what you want — read
+        ``device.values`` instead.
+        """
+        merged: dict[str, Any] = {}
         with self._lock:
-            return dict(self._values)
+            for device in sorted(self._devices.values(), key=lambda d: d.connected_at):
+                merged.update(device.values)
+        return merged
 
     @property
     def modulinos(self) -> dict[str, bool]:
-        """Which subscribed Modulinos the Nesso reports as plugged in."""
-        return dict(self._modulino_presence)
+        """Which subscribed Modulinos are attached, to any connected Nesso.
+
+        Answers "is there a Pixels on this link at all". For "does *that* remote
+        have one", read ``device.modulinos``.
+        """
+        merged: dict[str, bool] = {}
+        with self._lock:
+            for device in self._devices.values():
+                for kind, present in device.modulinos.items():
+                    merged[kind] = merged.get(kind, False) or present
+        return merged
 
     @property
     def widget_values(self) -> dict[str, Any]:
@@ -524,11 +611,12 @@ class NessoCompanion:
                 "url": self.url,
                 "connected": self.connected,
                 "screen_idle_s": self.screen_idle_s,
-                "device": self.device,
+                "device": self.device.describe() if self.device else None,
+                "devices": [d.describe() for d in self.devices],
                 "sensors": sorted(self._sensors),
                 "buttons": sorted(self._buttons),
                 "modulinos": sorted(self._modulinos),
-                "modulino_presence": dict(self._modulino_presence),
+                "modulino_presence": self.modulinos,
                 "widgets": [w.to_wire() for w in self._widgets.values()],
             }
 
@@ -574,8 +662,7 @@ class NessoCompanion:
         return None
 
     async def _handle_client(self, conn: ServerConnection) -> None:
-        peer = getattr(conn, "remote_address", None)
-        device: dict[str, Any] | None = None
+        device: Device | None = None
         try:
             hello = await asyncio.wait_for(conn.recv(), timeout=15)
             frame = _decode(hello)
@@ -586,17 +673,16 @@ class NessoCompanion:
                 await conn.close(1002, f"protocol {frame.get('proto')} not supported")
                 return
 
-            device = {
-                "id": frame.get("id"),
-                "name": frame.get("name") or frame.get("device") or "Nesso N1",
-                "device": frame.get("device", "nesso-n1"),
-                "fw": frame.get("fw"),
-                "caps": frame.get("caps", {}),
-                "address": peer[0] if peer else None,
-            }
-            self._device = device
+            device = Device(self, conn, frame)
+            with self._lock:
+                # A remote that reconnects keeps its identity, so an App holding
+                # a reference by id does not end up with a stale one.
+                self._devices[device.id] = device
             self._clients.add(conn)
-            logger.info(f"Nesso '{device['name']}' connected from {device['address']}")
+            logger.info(
+                f"Nesso '{device.name}' ({device.id}) connected from {device.address}"
+                f" — {len(self._devices)} device(s) now"
+            )
 
             await self._send_config(conn)
             await self._off_loop(self._connect_cbs.fire, device)
@@ -604,7 +690,7 @@ class NessoCompanion:
             async for raw in conn:
                 # User callbacks run in a worker thread: an App handler that
                 # blocks must never stall the socket or the outgoing frames.
-                await self._off_loop(self._dispatch, _decode(raw))
+                await self._off_loop(self._dispatch, _decode(raw), device)
                 await self._resend_config_if_stale(conn)
         except asyncio.TimeoutError:
             logger.warning("client did not send a hello frame in time")
@@ -616,10 +702,14 @@ class NessoCompanion:
             self._clients.discard(conn)
             self._sent_revision.pop(id(conn), None)
             if device is not None:
-                if not self._clients:
-                    self._device = None
-                    self._modulino_presence = {}
-                logger.info(f"Nesso '{device['name']}' disconnected")
+                with self._lock:
+                    # Only forget it if this connection is still the live one:
+                    # a reconnect may already have replaced it.
+                    if self._devices.get(device.id) is device:
+                        del self._devices[device.id]
+                logger.info(
+                    f"Nesso '{device.name}' disconnected — {len(self._devices)} device(s) left"
+                )
                 self._disconnect_cbs.fire(device)
 
     async def _off_loop(self, fn: Callable, *args: Any) -> None:
@@ -666,7 +756,13 @@ class NessoCompanion:
 
     # -- inbound dispatch --------------------------------------------------
 
-    def _dispatch(self, frame: dict[str, Any] | None) -> None:
+    def _dispatch(self, frame: dict[str, Any] | None, device: Device) -> None:
+        """Routes one inbound frame, telling the callbacks which Nesso sent it.
+
+        Every callback takes the sending device as its last argument. Handlers
+        that do not declare it never see it, because _Callbacks trims the
+        arguments to what each one accepts.
+        """
         if not frame:
             return
         kind = frame.get("t")
@@ -674,17 +770,17 @@ class NessoCompanion:
             ts = frame.get("ts")
             values = frame.get("v") or {}
             with self._lock:
-                self._values.update(values)
+                device.values.update(values)
             for name, value in values.items():
                 cbs = self._sensor_cbs.get(name)
                 if cbs:
-                    cbs.fire(value, name, ts)
+                    cbs.fire(value, name, ts, device)
         elif kind == "event":
             name = frame.get("name", "")
             action = frame.get("action", "")
             cbs = self._button_cbs.get(name)
             if cbs:
-                cbs.fire(action, name, frame.get("ts"))
+                cbs.fire(action, name, frame.get("ts"), device)
         elif kind == "ui":
             wid = frame.get("id", "")
             with self._lock:
@@ -692,7 +788,10 @@ class NessoCompanion:
                 if widget is not None:
                     widget.value = frame.get("value")
             if widget is not None:
-                widget.callbacks.fire(frame.get("value"), wid)
+                # Widgets belong to the App, not to a device: every Nesso draws
+                # the same ones, so a change on one is a change for all. The
+                # device is passed only so a handler can tell who did it.
+                widget.callbacks.fire(frame.get("value"), wid, device)
         elif kind == "modulino":
             mod = str(frame.get("kind", "")).lower()
             event = str(frame.get("event", "")).lower()
@@ -700,20 +799,20 @@ class NessoCompanion:
             for key in (f"{mod}/{event}", mod):
                 cbs = self._modulino_cbs.get(key)
                 if cbs:
-                    cbs.fire(value, event, mod)
+                    cbs.fire(value, event, mod, device)
         elif kind == "status":
             presence = {
                 str(item.get("kind")): bool(item.get("present"))
                 for item in frame.get("modulinos") or []
                 if item.get("kind")
             }
-            if presence != self._modulino_presence:
-                self._modulino_presence = presence
+            if presence != device.modulinos:
+                device.modulinos = presence
                 attached = sorted(k for k, v in presence.items() if v)
-                logger.info(f"Modulinos attached: {', '.join(attached) or 'none'}")
+                logger.info(f"{device.name}: Modulinos attached: {', '.join(attached) or 'none'}")
         elif kind == "log":
             level = str(frame.get("level", "info")).lower()
-            msg = f"[nesso] {frame.get('msg', '')}"
+            msg = f"[{device.name}] {frame.get('msg', '')}"
             getattr(logger, level, logger.info)(msg)
         elif kind == "pong":
             pass
@@ -721,6 +820,57 @@ class NessoCompanion:
             logger.debug(f"ignoring unknown frame type {kind!r}")
 
     # -- outbound plumbing -------------------------------------------------
+
+    # Per-device sends. Device.send_* delegates here so the socket plumbing
+    # stays in one place.
+
+    def _send_value_to(self, device: Device, name: str, value: Any) -> bool:
+        key = str(name).strip()
+        with self._lock:
+            widget = self._widgets.get(key)
+            if widget is None:
+                logger.warning(f"send_value('{key}', ...) ignored: no widget with that name")
+                return False
+            # The widget belongs to the App, so its value is still shared even
+            # when the frame goes to one device.
+            widget.value = value
+        return self._send_to(device, {"t": "value", "id": key, "value": value})
+
+    def _send_values_to(self, device: Device, values: Mapping[str, Any]) -> bool:
+        payload: dict[str, Any] = {}
+        with self._lock:
+            for key, value in values.items():
+                widget = self._widgets.get(str(key).strip())
+                if widget is None:
+                    logger.warning(f"send_values: no widget named '{key}', skipped")
+                    continue
+                widget.value = value
+                payload[widget.id] = value
+        if not payload:
+            return False
+        return self._send_to(device, {"t": "value", "values": payload})
+
+    def _send_modulino_to(self, device: Device, kind: str, value: Any) -> bool:
+        key = str(kind).strip().lower()
+        self._register_modulino_output(key)
+        return self._send_to(device, {"t": "modulino", "kind": key, "value": _jsonable(value)})
+
+    def _send_to(self, device: Device, message: dict[str, Any]) -> bool:
+        loop = self._loop
+        if loop is None or device._conn not in self._clients:
+            return False
+        payload = json.dumps(message)
+        future = asyncio.run_coroutine_threadsafe(
+            self._send_all([device._conn], payload), loop
+        )
+        try:
+            return bool(future.result(timeout=_SEND_TIMEOUT_S))
+        except TimeoutError:
+            logger.warning(f"timed out pushing a frame to {device.name}")
+            return False
+        except Exception:
+            logger.exception(f"failed to push a frame to {device.name}")
+            return False
 
     def _broadcast(self, message: dict[str, Any]) -> bool:
         loop = self._loop

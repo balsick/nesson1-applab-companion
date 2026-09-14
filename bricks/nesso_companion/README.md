@@ -153,6 +153,48 @@ companion.send_modulino(kind, value)     # e.g. ("pixels", [(255,0,0)] * 8)
 All three return `True` when the frame reached a connected Nesso. Sending to an
 unregistered widget logs a warning and returns `False`.
 
+### More than one Nesso
+
+Several remotes can connect at once — to the **same port**, since one WebSocket
+server accepts many clients. Each gets its own `Device`:
+
+```python
+companion.devices                 # everything connected, oldest first
+companion.device                  # the longest-connected one, or None
+companion.device_by_id("48:F6:…") # by the id it sent in its hello
+
+device.name, device.id, device.address, device.firmware
+device.values                     # this remote's readings
+device.modulinos                  # what is plugged into this remote
+device.send_value("slide", 3)     # to this remote alone
+device.send_modulino("pixels", bar)
+```
+
+**Every callback receives the sending device as its last argument**, and
+handlers that do not declare it never see it:
+
+```python
+@companion.on("button_1")
+def next_slide(action, name, ts, device):
+    log(f"{device.name} pressed next")
+
+@companion.on("button_1")
+def also_fine(action):        # still works, untouched
+    ...
+```
+
+Two brick-level properties merge across devices, which is right for one remote
+and worth knowing about for several:
+
+| | |
+| --- | --- |
+| `companion.values` | merged key by key, **last writer wins** — two remotes streaming `pitch` overwrite each other, so read `device.values` instead |
+| `companion.modulinos` | "is one attached **anywhere**" — for "does *that* remote have one", read `device.modulinos` |
+
+Screen widgets are deliberately **not** per-device: they are declared by the App
+and every connected Nesso draws the same ones, so a tap on one is a change for
+all. The device argument tells you who did it.
+
 ### Link lifecycle and state
 
 ```python
@@ -160,7 +202,8 @@ companion.on_connect(cb)      # cb(device_info)
 companion.on_disconnect(cb)   # cb(device_info)
 
 companion.connected           # bool
-companion.device              # the Nesso's hello payload, or None
+companion.device              # the longest-connected Device, or None
+companion.devices             # every connected Device
 companion.values              # {name: last value} for every subscribed sensor
 companion.widget_values       # {widget id: current value}
 companion.url                 # ws://<board ip>:<port>
