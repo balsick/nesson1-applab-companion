@@ -68,6 +68,10 @@ bool readStandardValue(const String& name, float& out);
 void pollBattery();
 float batteryLevel();
 float batteryVoltage();
+// Charger state straight from the AW32001, plus a raw register dump, because
+// "is it charging?" should be answerable without guessing.
+const char* chargeStatusName();
+void dumpCharger();
 
 // --- Modulinos -----------------------------------------------------------
 // Events are reported as (kind, event, value); value is NAN when the event

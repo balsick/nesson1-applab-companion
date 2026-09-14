@@ -406,6 +406,8 @@ static void printStatus() {
                 net::isConnected() ? net::localIp().c_str() : "-", companionPort, gBoardCount,
                 companion::isConnected() ? "up" : "down",
                 companion::handshakeDone() ? "done" : "pending");
+  Serial.printf("[status] battery %.0f%% %.3fV charger=%s\n", hw::batteryLevel(),
+                hw::batteryVoltage(), hw::chargeStatusName());
 
   Serial.printf("[status] loop avg %lu us, worst %lu us, over %lu iterations\n",
                 loopCount ? (unsigned long)(loopSumUs / loopCount) : 0UL,
@@ -522,6 +524,8 @@ static void runCommand(String line) {
       }
     }
     lastDrawMs = 0;
+  } else if (verb == "battery") {
+    hw::dumpCharger();
   } else if (verb == "i2c") {
     hw::scanI2C();
   } else if (verb == "screen") {
@@ -530,7 +534,7 @@ static void runCommand(String line) {
     printStatus();
   } else if (verb == "help") {
     Serial.println("commands: wifi <ssid> <pass> | port <n> | scan | connect [n] |");
-    Serial.println("          status | screen | i2c | portal | forget | help");
+    Serial.println("          status | screen | i2c | battery | portal | forget | help");
     Serial.println("  test:   tap <x> <y> | scroll <px>");
   } else {
     Serial.printf("unknown command '%s', try 'help'\n", verb.c_str());

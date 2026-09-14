@@ -278,6 +278,46 @@ void pollBattery() {
 float batteryLevel() { return battLevel; }
 float batteryVoltage() { return battVolts; }
 
+const char* chargeStatusName() {
+  switch (battery.getChargeStatus()) {
+    case NessoBattery::NOT_CHARGING: return "NOT_CHARGING";
+    case NessoBattery::PRE_CHARGE:   return "PRE_CHARGE";
+    case NessoBattery::CHARGING:     return "CHARGING";
+    case NessoBattery::FULL_CHARGE:  return "FULL_CHARGE";
+  }
+  return "unknown";
+}
+
+static void writeChargerReg(uint8_t reg, uint8_t value) {
+  Wire.beginTransmission(NessoBattery::AW32001_I2C_ADDR);
+  Wire.write(reg);
+  Wire.write(value);
+  Wire.endTransmission();
+}
+
+static uint8_t readChargerReg(uint8_t reg) {
+  Wire.beginTransmission(NessoBattery::AW32001_I2C_ADDR);
+  Wire.write(reg);
+  if (Wire.endTransmission(false) != 0) return 0xFF;
+  if (Wire.requestFrom((uint8_t)NessoBattery::AW32001_I2C_ADDR, (uint8_t)1) != 1) return 0xFF;
+  return Wire.read();
+}
+
+void dumpCharger() {
+  static const char* NAMES[] = {"INPUT_SRC",  "POWER_ON_CFG",  "CHG_CURRENT", "TERM_CURRENT",
+                                "CHG_VOLTAGE", "TIMER_WD",     "MAIN_CTRL",   "SYS_CTRL",
+                                "SYS_STATUS", "FAULT_STATUS",  "CHIP_ID"};
+  Serial.printf("[charger] status=%s  battery %.0f%% %.3fV\n", chargeStatusName(), battLevel,
+                battVolts);
+  for (uint8_t reg = 0; reg <= 0x0A; reg++) {
+    uint8_t v = readChargerReg(reg);
+    Serial.printf("[charger]   0x%02X %-13s = 0x%02X  %c%c%c%c%c%c%c%c\n", reg, NAMES[reg], v,
+                  (v & 0x80) ? '1' : '0', (v & 0x40) ? '1' : '0', (v & 0x20) ? '1' : '0',
+                  (v & 0x10) ? '1' : '0', (v & 0x08) ? '1' : '0', (v & 0x04) ? '1' : '0',
+                  (v & 0x02) ? '1' : '0', (v & 0x01) ? '1' : '0');
+  }
+}
+
 // --- Modulinos -----------------------------------------------------------
 
 static ModulinoHandler modulinoHandler = nullptr;
@@ -603,8 +643,25 @@ void begin() {
   pinMode(KEY2, INPUT_PULLUP);
 
   battery.begin();
+
+  // INPUT_SRC is written directly rather than through the library setters.
+  // begin() never sets the input current limit at all, so the chip stays at its
+  // power-on 260 mA - and since the charge current alone is 256 mA and the
+  // Nesso draws about as much again with Wi-Fi and the backlight on, it reports
+  // CHARGING while the battery steadily drains.
+  //
+  // setIinLimitCurrent() on its own would work, but setVinDPMVoltage() is buggy:
+  // it clears bits 6-3 and writes bits 7-4, so the old bit 7 survives and the
+  // DPM threshold ends up wrong (asking for 4200 mV yielded 4840 mV, above a
+  // typical USB rail, which stops charging altogether).
+  //
+  //   bits 7-4  VINDPM = (mV - 3880) / 80  -> 8 = 4520 mV, the value that was
+  //                                           observed charging on this supply
+  //   bits 3-0  IINLIM = (mA - 50) / 30    -> 15 = 500 mA, the chip maximum
+  writeChargerReg(NessoBattery::AW3200_INPUT_SRC, (8 << 4) | 15);
   battery.enableCharge();
   pollBattery();
+  Serial.printf("[charger] %s at boot\n", chargeStatusName());
 
   touchReady = touch.begin();
   Serial.printf("[touch] %s\n", touchReady ? "ready" : "not found");
