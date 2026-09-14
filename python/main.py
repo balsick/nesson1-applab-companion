@@ -1,9 +1,9 @@
 """Nesso Presenter - drive a slide deck from an Arduino Nesso N1.
 
-The Nesso is the remote: KEY1 on its face advances, KEY2 on its edge goes back,
-tilting it moves a pointer, and its screen carries a jump control, the clock and
-a recentre button. The browser is the projected surface, and works on its own if
-the remote is not around.
+The Nesso is the remote: KEY1 on its face advances, double-press it to go back
+and hold it to fill the screen; KEY2 on its edge recentres the pointer. Tilting
+it moves that pointer, and its screen carries a jump control and the clock. The
+browser is the projected surface, and works on its own if the remote is away.
 
 Two slides are live rather than drawn: one drives a Modulino Pixels while it is
 on screen, so plugging one in mid-talk is the demonstration, and the closing one
@@ -192,7 +192,10 @@ def goto(index: int, *, source: str = "app") -> None:
     if target == show["index"]:
         return
     show["index"] = target
-    if source in ("KEY1", "KEY2", "Nesso screen"):
+    # The source now carries the name of the Nesso that sent it ("KEY1 on <name>"),
+    # so match the prefix - an equality test here stopped counting the moment the
+    # remote started naming itself, and the closing slide reports these figures.
+    if source.startswith(("KEY1", "KEY2", "Nesso screen")):
         stats["from_remote"] += 1
     elif source == "browser":
         stats["from_browser"] += 1
@@ -226,32 +229,44 @@ def reset_timer() -> None:
 
 
 # --- The Nesso as a remote -------------------------------------------------
-# KEY1 is the big button on the face, so it gets the action you do most. KEY2 is
-# the small one on the edge, so it goes back. Recentring the pointer is a button
-# on the screen rather than a hold: a hold mid-sentence is awkward, and a screen
-# button can say what it does.
+# KEY1 is the big button on the face, under the thumb, so the whole deck lives on
+# it. KEY2 is the small one on the edge - the one you can find without looking -
+# so it gets recentring, which is what you reach for mid-sentence when the
+# pointer has drifted.
 
 
 # The trailing `device` is optional: handlers that leave it out still work. With
 # two remotes in the room it is how you tell whose thumb moved the deck.
 
 
+# KEY1 carries the whole deck: press forward, double back, hold to fill the
+# screen. The cost of putting two meanings on one press is that a single click
+# can only be reported once the double-click window has closed - the firmware
+# waits BUTTON_DOUBLE_MS (350 ms) before it knows which one you meant. Forward
+# therefore lands a third of a second late, which is invisible while talking.
+
+
 @companion.on("button_1")
 def on_key1(action: str, name, ts, device) -> None:
     if action == "click":
         step(+1, source=f"KEY1 on {device.name}")
+    elif action == "double_click":
+        step(-1, source=f"KEY1 double on {device.name}")
     elif action == "long_press":
-        # The browser decides whether this is allowed: entering fullscreen needs
-        # a recent user gesture in the page, which a message off a socket is not.
-        # The browser falls back to prompting rather than failing silently.
-        logger.info(f"fullscreen asked for by {device.name}")
+        # Present mode, not real fullscreen: requestFullscreen() is only granted
+        # off a user gesture in the page, and a message off a socket is not one.
+        # Present mode is ours to give, so the remote always gets it.
+        logger.info(f"present mode toggled by {device.name}")
         ui.send_message("fullscreen", {"source": device.name})
 
 
 @companion.on("button_2")
 def on_key2(action: str, name, ts, device) -> None:
+    # The edge button recentres. It is the one you press without looking, and
+    # recentring is the thing you want mid-sentence when the pointer has drifted.
     if action == "click":
-        step(-1, source=f"KEY2 on {device.name}")
+        recentre()
+        ui.send_message("recentred", {"source": f"KEY2 on {device.name}"})
 
 
 # --- Pointer ---------------------------------------------------------------

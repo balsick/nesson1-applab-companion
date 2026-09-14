@@ -320,3 +320,6 @@ socket.on("show", (payload) => {
 socket.on("tick", renderTick);
 // The remote asks for present mode, which never gets refused.
 socket.on("fullscreen", () => togglePresent());
+// KEY2 recentres. Say so: if the pointer was already near the middle, nothing
+// visible moves, and a control that looks dead gets pressed again.
+socket.on("recentred", (payload) => toast(`Pointer recentred · ${payload.source}`, 1600));

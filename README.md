@@ -26,12 +26,20 @@ from the same firmware.
 | On the Nesso | |
 | --- | --- |
 | **KEY1**, the large button on the face | next slide |
-| **KEY2**, on the edge | previous slide |
+| **double-press KEY1** (within 0.35 s) | previous slide |
 | **hold KEY1** (0.8 s) | present mode — the slide fills the window |
+| **KEY2**, on the edge | recentre the pointer |
 | Tilt | moves the pointer |
 | `Jump` on its screen | go to any slide |
-| `Recentre` on its screen | take the current attitude as centre |
+| `Recentre` on its screen | the same thing, when you would rather look |
 | `Pointer`, `Sensitivity` | pointer on/off, and how far a tilt travels |
+
+The whole deck sits on KEY1 because it is the one under your thumb. That costs a
+little: the firmware cannot call a press a single click until the double-press
+window has closed, so **forward lands 0.35 s late**. It is invisible while you are
+talking, and it buys going back without reaching for the edge of the device.
+KEY2 recentres because it is the button you can find without looking, and drift
+is what you fix mid-sentence.
 
 ### Why the hold gives present mode and not real fullscreen
 
@@ -55,10 +63,6 @@ chromium --kiosk 'http://<board-ip>:7000/#present'
 
 The `#present` hash opens the deck already filled, which is what you want on a
 projector.
-
-KEY1 gets the action you do most because it is the big one under your thumb.
-Recentring is a screen button rather than a long press: holding a key mid-sentence
-is awkward, and a button can say what it does.
 
 | In the browser | |
 | --- | --- |

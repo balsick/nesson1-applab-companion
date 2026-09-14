@@ -27,10 +27,10 @@ companion.on_value("slide", "stepper", jump)
 
 # The remote
 ![](img/slides/remote.svg)
-- **KEY1**, the big one on the face: next slide
-- **KEY2**, on the edge: back
-- The screen shows where you are, and recentres the pointer
-> Six widgets, drawn by the Nesso from what this App declared.
+- **KEY1**, the big one on the face: press forward, **double-press** back
+- **Hold KEY1**: the browser sheds its chrome and the slide fills the window
+- **KEY2**, on the edge: recentre the pointer — findable without looking
+> Six widgets on its screen, drawn from what this App declared: jump, clock, sensitivity.
 
 ---
 
@@ -54,14 +54,16 @@ companion.on_value("slide", "stepper", jump)
 ![](img/slides/layers.svg)
 - This deck asks for four values and one Modulino
 - The companion demo asks for ten values and five Modulinos
+- Every callback names the Nesso it came from, so one App can hold several at once
 > Neither ever reflashed the Nesso. It renders what it is told.
 
 ---
 
 # What it could do next
 ![](img/slides/power.svg)
-- The backlight is on/off through the expander, so the win is blanking when idle and waking on touch
-- The gauge already reports **current**, not just charge, so runtime is arithmetic
+- Already running: the screen blanks after **120 s** and wakes on touch — the App sets that
+- The backlight is only on/off through the expander, so dimming is the next step
+- The gauge reports **current**, not just charge, so runtime is arithmetic
 > Then the handshake could quote its own price: what this subscription costs you, in minutes.
 
 ---
