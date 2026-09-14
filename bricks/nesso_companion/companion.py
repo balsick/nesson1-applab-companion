@@ -56,6 +56,13 @@ logger = Logger("NessoCompanion")
 _SEND_TIMEOUT_S = 2.0
 
 
+def _env_flag(name: str, fallback: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return fallback
+    return raw.strip().lower() in ("1", "true", "yes", "on")
+
+
 def _env_int(name: str, fallback: int) -> int:
     raw = os.getenv(name)
     if raw is None or not raw.strip():
@@ -152,6 +159,8 @@ class NessoCompanion:
         host: str = "0.0.0.0",
         default_rate_hz: int | None = None,
         screen_idle_s: int | None = None,
+        autoflash: bool | None = None,
+        firmware_dir: str = "/app/nesso-firmware/build",
     ) -> None:
         self.port = int(port) if port is not None else _env_int("NESSO_PORT", DEFAULT_PORT)
         self.host = host
@@ -169,6 +178,13 @@ class NessoCompanion:
             if screen_idle_s is not None
             else _env_int("NESSO_SCREEN_IDLE_S", 60)
         )
+
+        # Off unless asked for: probing resets whatever ESP32 is on the port,
+        # and the USB identifiers cannot tell a Nesso from any other one.
+        self.autoflash = (
+            bool(autoflash) if autoflash is not None else _env_flag("NESSO_AUTOFLASH", False)
+        )
+        self.firmware_dir = os.getenv("NESSO_FIRMWARE_DIR", firmware_dir)
 
         # Registrations. Guarded by _lock because an App may register from its
         # own thread while the asyncio loop is serving a connection.
@@ -209,11 +225,32 @@ class NessoCompanion:
         """Bring the WebSocket server up on its own asyncio loop thread."""
         if self._thread is not None:
             return
+        if self.autoflash:
+            # In the background: writing the images takes about fifteen seconds
+            # and the App should not wait for a device that may not be there.
+            threading.Thread(
+                target=self._provision, name="NessoProvision", daemon=True
+            ).start()
         self._stopping.clear()
         self._thread = threading.Thread(target=self._run_loop, name="NessoCompanion", daemon=True)
         self._thread.start()
         if not self._server_ready.wait(timeout=10):
             logger.warning("WebSocket server did not report ready within 10s")
+
+    def _provision(self) -> None:
+        """Bring an attached Nesso up to the firmware shipped with this App."""
+        from . import provision
+
+        version_file = os.path.join(self.firmware_dir, "version.txt")
+        try:
+            with open(version_file) as handle:
+                expected = handle.read().strip()
+        except OSError as err:
+            logger.error(f"cannot read {version_file}: {err}; skipping the firmware check")
+            return
+
+        outcome = provision.ensure_firmware(self.firmware_dir, expected)
+        logger.info(f"firmware check: {outcome}")
 
     def stop(self) -> None:
         """Close every client and shut the server down."""

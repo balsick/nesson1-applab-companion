@@ -235,3 +235,33 @@ event so all the callback paths get exercised:
 docker exec nesso-companion-main-1 \
     /app/.cache/.venv/bin/python /app/tools/fake_nesso.py
 ```
+
+## Updating the Nesso from the App
+
+The brick can check an attached Nesso at start-up and update it if its firmware
+differs from the one shipped in `nesso-firmware/build/`. It is **off unless you
+ask for it**:
+
+```yaml
+bricks:
+  - nesso_companion:
+      variables:
+        NESSO_AUTOFLASH: "true"   # default is false
+```
+
+Why it defaults to off: probing **resets whatever is on the port**, and the USB
+identifiers (`303a:1001`) say "an Espressif device", not "a Nesso N1". An
+unrelated ESP32 plugged into the same board would be reset and, if the update
+went ahead, overwritten.
+
+There is no protocol for the version check - the firmware prints its version on
+boot, so a reset and a short read is the whole probe. Measured on this board:
+
+| | |
+| --- | --- |
+| Already current | **0.75 s**, no write |
+| Out of date | **21 s**, four images, hashes verified |
+
+It runs on a background thread, so App start-up never waits for it. Keep
+`nesso-firmware/build/version.txt` in step with `NESSO_FIRMWARE_VERSION` in
+`config.h`, or the App will either update forever or never.
