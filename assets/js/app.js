@@ -243,22 +243,49 @@ function toggleFullscreen(fromRemote = false) {
     return;
   }
   const entering = stage.requestFullscreen?.();
-  if (entering && fromRemote) {
-    // Browsers only grant fullscreen off a user gesture in the page. A request
-    // arriving over a socket usually is not one, so say so instead of doing
-    // nothing at all.
-    entering.catch(() => toast("Press F here to go fullscreen"));
-  }
+  // Browsers only grant fullscreen off a user gesture in the page, and a request
+  // arriving over a socket is not one. Rather than fail silently, arm it: the
+  // very next touch or keypress anywhere in the page carries it through.
+  if (entering && fromRemote) entering.catch(armFullscreen);
+}
+
+let fullscreenArmed = false;
+
+function armFullscreen() {
+  if (fullscreenArmed) return;
+  fullscreenArmed = true;
+  toast("Fullscreen is ready — press any key or click here");
+
+  const go = () => {
+    disarm();
+    $("stage").requestFullscreen?.().catch(() => {});
+  };
+  const disarm = () => {
+    fullscreenArmed = false;
+    hideToast();
+    window.removeEventListener("keydown", go, true);
+    window.removeEventListener("pointerdown", go, true);
+  };
+
+  window.addEventListener("keydown", go, { capture: true, once: true });
+  window.addEventListener("pointerdown", go, { capture: true, once: true });
+  // Do not leave the prompt sitting there forever if nobody is at the laptop.
+  setTimeout(() => { if (fullscreenArmed) disarm(); }, 12000);
 }
 
 let toastTimer = null;
-function toast(text) {
+function toast(text, ms = 0) {
   const el = $("toast");
   if (!el) return;
   el.textContent = text;
   el.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.hidden = true; }, 4000);
+  if (ms) toastTimer = setTimeout(hideToast, ms);
+}
+function hideToast() {
+  clearTimeout(toastTimer);
+  const el = $("toast");
+  if (el) el.hidden = true;
 }
 
 document.addEventListener("keydown", (event) => {

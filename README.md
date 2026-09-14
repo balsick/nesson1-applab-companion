@@ -33,11 +33,26 @@ from the same firmware.
 | `Recentre` on its screen | take the current attitude as centre |
 | `Pointer`, `Sensitivity` | pointer on/off, and how far a tilt travels |
 
-**Fullscreen from the remote is best-effort.** Browsers only grant fullscreen off a
-user gesture *in the page*, and a message arriving over a socket is not one. Leaving
-fullscreen always works, so the remote can reliably get you out; entering may be
-refused, in which case the deck says "Press F here to go fullscreen" rather than
-appearing to ignore you. Click the page once and it generally sticks.
+**Fullscreen from the remote cannot be guaranteed, and that is the web platform,
+not a bug here.** `requestFullscreen()` is only granted off a user gesture *in the
+page*; a request arriving over a socket is not one, so the browser refuses it. The
+firmware and the link are fine — measured, a hold produces `long_press` 810 ms after
+`press` and the App asks immediately.
+
+So the hold does two things:
+
+- **Leaving** fullscreen needs no permission and always works. The remote can
+  reliably get you out.
+- **Entering** arms it: the deck shows "Fullscreen is ready — press any key or
+  click here", and the next touch or keypress at the laptop carries it through.
+  The prompt clears itself after twelve seconds.
+
+If you would rather not touch the laptop at all, start the browser already
+fullscreen and never toggle it:
+
+```bash
+chromium --kiosk http://<board-ip>:7000
+```
 
 KEY1 gets the action you do most because it is the big one under your thumb.
 Recentring is a screen button rather than a long press: holding a key mid-sentence
