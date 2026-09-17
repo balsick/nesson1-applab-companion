@@ -16,6 +16,35 @@ nesso-firmware/NessoCompanion/
 └── ui.h/.cpp            # 135x240 screens: picker and generated dashboard
 ```
 
+## Libraries
+
+Four, none of them bundled. Install them before the first compile:
+
+| Library | Author | Why |
+| --- | --- | --- |
+| `Arduino_Nesso_N1` | Arduino | board support: screen, touch, keys, IMU, battery. Pulls in `M5GFX` and `Arduino_BMI270_BMM150` on its own. |
+| `WebSockets` | **Markus Sattler** | the link to the App — this is the one that provides `WebSocketsClient.h` |
+| `ArduinoJson` | Benoit Blanchon | the wire protocol |
+| `Arduino_Modulino` | Arduino | Qwiic modules |
+
+```bash
+arduino-cli lib install Arduino_Nesso_N1 WebSockets ArduinoJson Arduino_Modulino
+```
+
+> ### `WebSocketsClient.h: No such file or directory`
+>
+> You have the wrong WebSockets library. Searching "websockets" in the Library
+> Manager returns several, and two of them look identical at a glance:
+>
+> - **`WebSockets` by Markus Sattler** — <https://github.com/Links2004/arduinoWebSockets> — provides `WebSocketsClient.h`. **This is the one.**
+> - `ArduinoWebsockets` by Gil Maimon — provides `ArduinoWebsockets.h` instead. Different API, will not build this sketch.
+>
+> In the IDE, read the **author** line before you click Install. From the command
+> line `arduino-cli lib install WebSockets` resolves to the right one, because
+> that is the exact index name.
+>
+> Tested against **WebSockets 2.7.2**. Use a 2.x release: 1.x is the AVR branch.
+
 ## What it does
 
 1. **Wi-Fi.** Credentials come from NVS. With none stored, the Nesso opens a
@@ -238,14 +267,13 @@ The board package is `esp32:esp32` (the Nesso N1 is an ESP32-C6, RISC-V).
 
 ```bash
 arduino-cli core install esp32:esp32
-arduino-cli lib install Arduino_Nesso_N1 ArduinoJson WebSockets Arduino_Modulino
+# libraries: see the table at the top, and read that warning before installing
+arduino-cli lib install Arduino_Nesso_N1 WebSockets ArduinoJson Arduino_Modulino
 
 arduino-cli compile -b esp32:esp32:arduino_nesso_n1 NessoCompanion
 arduino-cli upload  -b esp32:esp32:arduino_nesso_n1 -p /dev/ttyACM0 NessoCompanion
 arduino-cli monitor -p /dev/ttyACM0 -c baudrate=115200
 ```
-
-`Arduino_Nesso_N1` pulls in `M5GFX` and `Arduino_BMI270_BMM150` on its own.
 
 ### Building on the UNO Q itself
 

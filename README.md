@@ -56,6 +56,8 @@ arduino-app-cli app start user:nesso-companion
 ### Pair the Nesso
 
 1. Flash the firmware — see [`nesso-firmware/README.md`](nesso-firmware/README.md).
+   It needs four libraries installed first, and the WebSockets one has a
+   same-named impostor in the Library Manager; that README opens with the list.
 2. Get it onto **the network the UNO Q is on** (`Arduinoboards` here), either way:
    - **Over the USB cable**, which is already connected:
      ```bash
