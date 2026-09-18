@@ -1,0 +1,3 @@
+websockets>=13.0
+# Only used when NESSO_AUTOFLASH is on; it also brings in pyserial.
+esptool>=4.7

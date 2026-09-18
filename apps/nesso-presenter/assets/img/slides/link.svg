@@ -1,0 +1,26 @@
+<svg viewBox="0 0 420 240" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="A board and a Nesso N1 linked over Wi-Fi">
+  <!-- the board -->
+  <rect x="18" y="74" width="150" height="96" rx="10" fill="#132023" stroke="#22383d" stroke-width="2"/>
+  <rect x="34" y="92" width="46" height="30" rx="4" fill="#0c1416" stroke="#22383d"/>
+  <circle cx="120" cy="107" r="11" fill="#0c1416" stroke="#22383d"/>
+  <circle cx="120" cy="107" r="4" fill="#00979d"/>
+  <g fill="#22383d"><rect x="34" y="136" width="100" height="4" rx="2"/><rect x="34" y="146" width="66" height="4" rx="2"/></g>
+  <text x="93" y="192" text-anchor="middle" fill="#7d9ea4" font-family="system-ui,sans-serif" font-size="14">Arduino board</text>
+
+  <!-- the link -->
+  <g fill="none" stroke="#37d6e0" stroke-width="2.5" stroke-linecap="round" opacity=".9">
+    <path d="M196 120a34 34 0 0 1 28 0" opacity=".35"/>
+    <path d="M190 108a50 50 0 0 1 40 0" opacity=".6"/>
+    <path d="M184 96a66 66 0 0 1 52 0"/>
+  </g>
+  <circle cx="210" cy="132" r="4.5" fill="#37d6e0"/>
+
+  <!-- the Nesso -->
+  <rect x="276" y="50" width="86" height="146" rx="14" fill="#132023" stroke="#22383d" stroke-width="2"/>
+  <rect x="288" y="64" width="62" height="104" rx="6" fill="#0c1416" stroke="#22383d"/>
+  <g fill="#37d6e0" opacity=".85"><rect x="296" y="74" width="30" height="5" rx="2.5"/></g>
+  <g fill="#22383d"><rect x="296" y="88" width="46" height="4" rx="2"/><rect x="296" y="98" width="34" height="4" rx="2"/></g>
+  <rect x="296" y="118" width="46" height="16" rx="8" fill="#00979d" opacity=".5"/>
+  <circle cx="295" cy="182" r="5" fill="#22383d"/><circle cx="343" cy="182" r="5" fill="#22383d"/>
+  <text x="319" y="222" text-anchor="middle" fill="#7d9ea4" font-family="system-ui,sans-serif" font-size="14">Nesso N1</text>
+</svg>
