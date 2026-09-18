@@ -162,10 +162,11 @@ Web UI on `http://<board-ip>:7000`, companion endpoint on `8077`.
 
 ## Notes
 
-- The `nesso_companion` brick is **copied** into `bricks/`, because Custom Bricks
-  live inside the App that uses them. A second consumer is the point at which it
-  is worth publishing properly rather than copying — until then, changes have to
-  be applied in both Apps.
+- The `nesso_companion` brick is **copied** into `bricks/` by the repo's
+  `install.sh`, because Custom Bricks live inside the App that uses them and App
+  Lab has no shared location for them. The single source is `bricks/` at the repo
+  root; this copy is gitignored. Edit the source and re-run `install.sh` —
+  editing the copy works until the next install, and then it is gone.
 - The pointer uses `pitch`/`roll` rather than raw acceleration: they are already
   gravity-referenced, so they hold still when the hand does. Smoothing is applied
   in Python, so the CSS deliberately has no transition on the pointer that would
