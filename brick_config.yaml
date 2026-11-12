@@ -13,7 +13,7 @@ ports:
 
 variables:
   - name: NESSO_PORT
-    description: "TCP port the companion WebSocket server listens on. Must match the 'ports' entry above and in app.yaml."
+    description: "TCP port the companion WebSocket server listens on. 8077 is exposed by the 'ports' entry above; to move it, also add the new port to the App's app.yaml 'ports:'."
     default_value: "8077"
   - name: NESSO_NAME
     description: "Name advertised to the Nesso during the handshake and shown on its screen."
