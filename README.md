@@ -179,21 +179,6 @@ The `ping` button is the round trip made visible: tapping it on the Nesso calls
 a Python handler, which calls `send_value("board", "pong")`, which lands back on
 the Nesso's screen.
 
-## Where the phases go next
-
-- **Phase 1 — the link, end to end.** Done. Discovery, handshake, sensors,
-  buttons, screen widgets, Modulinos, all verified on hardware.
-- **Phase 2 — presentation remote.** Done, as a **separate App**: see
-  [`apps/nesso-presenter`](apps/nesso-presenter). Keys change slide, tilt moves a pointer, and the Nesso's
-  screen carries a jump control and the clock. It reuses this brick and this
-  firmware unchanged — the whole phase was written without reflashing the Nesso
-  once. Where this App registers ten sensors and five Modulinos, the presenter
-  registers four values and nothing else, which is the clearest demonstration of
-  what the handshake is for.
-- **Phase 3 — Modulino Pixels.** Done, out of order, once the hardware arrived.
-  Writable three ways — automatically as a proximity bar from Distance, from the
-  Nesso's screen, and from the Web UI — with `LED level` for brightness.
-
 ## Updating the Nesso from the App
 
 The brick can check a Nesso plugged into the board's USB at start-up and flash
