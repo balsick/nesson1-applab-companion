@@ -12,7 +12,7 @@ namespace ui {
 
 void begin();
 
-// Streams the framebuffer over serial as base64 RGB565, for tools/nesso_screenshot.py.
+// Streams the framebuffer over serial as base64 RGB565, for a PC-side decoder.
 void dumpScreen();
 
 // --- Status screens ------------------------------------------------------

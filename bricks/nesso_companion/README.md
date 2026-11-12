@@ -5,17 +5,32 @@ second screen, a remote control and an extra set of sensors, on the other side
 of a WebSocket.
 
 The brick is a [Custom Brick](https://docs.arduino.cc/software/app-lab/bricks/custom-bricks/):
-it lives inside this App, under `bricks/nesso_companion/`, and is not published
-to the Bricks index.
+it lives inside the App that uses it, under `bricks/nesso_companion/`, and is not
+published to the Bricks index. It carries everything the Nesso side needs too:
+the firmware ready to flash, and the sketch it was built from.
 
 ```
-bricks/nesso_companion/
+nesso_companion/
 ├── __init__.py          # public exports
 ├── companion.py         # the NessoCompanion class
 ├── protocol.py          # wire protocol + standard names, shared with the sketch
+├── provision.py         # autoflash: version probe + esptool update
 ├── brick_config.yaml    # id, name, port, variables
-└── requirements.txt     # websockets
+├── requirements.txt     # websockets, esptool
+├── firmware/            # prebuilt Nesso N1 images + version.txt
+└── sketch/              # the Nesso N1 sketch sources (see sketch/README.md)
 ```
+
+## Install
+
+1. Copy this folder into your App as `bricks/nesso_companion/` (the folder name
+   must match the brick id).
+2. Add it to `app.yaml`, with its port (see the quick start below).
+3. Put the firmware on the Nesso N1: [flash it by hand](#flash-the-nesso-by-hand)
+   once, or turn on [autoflash](#updating-the-nesso-from-the-app).
+4. Start the App. On first boot the Nesso shows a QR code that joins its
+   `Nesso-N1-Setup` access point; pick the Wi-Fi network the board is on, then
+   pick the board from the list.
 
 ## The idea
 
@@ -268,21 +283,10 @@ the same lifecycle-status idea. If RemoteSensor grows a public bidirectional
 API, the transport here could be swapped for it without changing the App-facing
 methods.
 
-## Testing without hardware
-
-`tools/fake_nesso.py` in the App root speaks this protocol. It connects, prints
-the handshake it was given, then streams synthetic motion and fires one of every
-event so all the callback paths get exercised:
-
-```bash
-docker exec nesso-companion-main-1 \
-    /app/.cache/.venv/bin/python /app/tools/fake_nesso.py
-```
-
 ## Updating the Nesso from the App
 
 The brick can check an attached Nesso at start-up and update it if its firmware
-differs from the one shipped in `nesso-firmware/build/`. It is **off unless you
+differs from the one shipped in this brick's `firmware/`. It is **off unless you
 ask for it**:
 
 ```yaml
@@ -305,6 +309,28 @@ boot, so a reset and a short read is the whole probe. Measured on this board:
 | Already current | **0.75 s**, no write |
 | Out of date | **21 s**, four images, hashes verified |
 
-It runs on a background thread, so App start-up never waits for it. Keep
-`nesso-firmware/build/version.txt` in step with `NESSO_FIRMWARE_VERSION` in
-`config.h`, or the App will either update forever or never.
+It runs on a background thread, so App start-up never waits for it. The Nesso
+must be plugged into the board's USB-C hub. Keep `firmware/version.txt` in step
+with `NESSO_FIRMWARE_VERSION` in `sketch/NessoCompanion/config.h`, or the App
+will either update forever or never.
+
+## Flash the Nesso by hand
+
+`firmware/` holds the four images of the current build. From a computer with
+the Nesso on USB, with [esptool](https://docs.espressif.com/projects/esptool/)
+(`pip install esptool`):
+
+```bash
+cd firmware
+esptool --chip esp32c6 --port /dev/ttyACM0 --baud 921600 write-flash \
+    --flash-mode dio --flash-freq 80m --flash-size 16MB \
+    0x0 bootloader.bin 0x8000 partitions.bin 0xe000 boot_app0.bin 0x10000 firmware.bin
+```
+
+Replace `/dev/ttyACM0` with the Nesso's port (`COM5` on Windows,
+`/dev/cu.usbmodem…` on macOS). With esptool 4.x the command is spelled
+`esptool.py … write_flash`.
+
+To change the firmware instead, build it from `sketch/` with the Arduino IDE or
+`arduino-cli`: [`sketch/README.md`](sketch/README.md) lists the four libraries
+it needs and how to compile and upload it.

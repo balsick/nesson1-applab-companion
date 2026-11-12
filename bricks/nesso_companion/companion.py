@@ -212,7 +212,7 @@ class NessoCompanion:
         default_rate_hz: int | None = None,
         screen_idle_s: int | None = None,
         autoflash: bool | None = None,
-        firmware_dir: str = "/app/nesso-firmware/build",
+        firmware_dir: str | None = None,
     ) -> None:
         self.port = int(port) if port is not None else _env_int("NESSO_PORT", DEFAULT_PORT)
         self.host = host
@@ -236,7 +236,12 @@ class NessoCompanion:
         self.autoflash = (
             bool(autoflash) if autoflash is not None else _env_flag("NESSO_AUTOFLASH", False)
         )
-        self.firmware_dir = os.getenv("NESSO_FIRMWARE_DIR", firmware_dir)
+        # The images ship inside the brick, so the App needs nothing of its own.
+        self.firmware_dir = (
+            firmware_dir
+            or os.getenv("NESSO_FIRMWARE_DIR")
+            or os.path.join(os.path.dirname(os.path.abspath(__file__)), "firmware")
+        )
 
         # Registrations. Guarded by _lock because an App may register from its
         # own thread while the asyncio loop is serving a connection.

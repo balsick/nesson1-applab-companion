@@ -21,3 +21,9 @@ variables:
   - name: NESSO_DEFAULT_RATE_HZ
     description: "Default streaming rate (Hz) requested for sensors registered without an explicit rate_hz."
     default_value: "10"
+  - name: NESSO_SCREEN_IDLE_S
+    description: "Seconds without touch or key before the Nesso blanks its screen. 0 keeps it lit."
+    default_value: "60"
+  - name: NESSO_AUTOFLASH
+    description: "At start-up, check a Nesso attached over USB and flash the firmware shipped in this brick if it differs. Resets whatever ESP32 is on the port, so it is off unless set to true."
+    default_value: "false"

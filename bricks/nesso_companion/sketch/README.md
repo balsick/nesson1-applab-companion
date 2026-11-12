@@ -2,11 +2,16 @@
 
 The sketch that runs on the **Arduino Nesso N1** and talks to the
 `nesso_companion` brick. It is a separate Arduino sketch for the Nesso's
-ESP32-C6 — not the App's MCU sketch — so it lives here rather than in `sketch/`,
-where App Lab would try to build it for the UNO Q's Zephyr MCU.
+ESP32-C6, not an App's MCU sketch, so it travels inside the brick rather than in
+an App's own `sketch/` folder, where App Lab would try to build it for the UNO
+Q's Zephyr MCU.
+
+You only need these sources to change the firmware. To put the shipped one on a
+Nesso, flash the prebuilt images in [`../firmware`](../firmware), by hand or
+with the brick's autoflash: see the brick README.
 
 ```
-nesso-firmware/NessoCompanion/
+sketch/NessoCompanion/
 ├── NessoCompanion.ino   # state machine: provision -> connect -> discover -> pick -> link
 ├── config.h             # ports, timings, colours, touch orientation flags
 ├── state.h/.cpp         # the handshake result: subscriptions and widgets
@@ -82,36 +87,19 @@ baud:
 | `portal` | Re-open Wi-Fi setup **keeping** the stored network, to move to another one. |
 | `forget` | Wipe the stored network and reopen setup. |
 | `i2c` | Scan the shared I2C bus and name the devices it recognises. |
-| `screen` | Dump the framebuffer (see the screenshot tool below). |
+| `screen` | Dump the framebuffer as base64 RGB565 between two markers. |
 | `tap <x> <y>` | Test aid: inject a tap, through the handlers the touch controller feeds. |
 | `scroll <px>` | Test aid: scroll the current list by a pixel amount. |
 | `idle <s>` | Blank the screen after this many seconds of no input; `0` never. |
 | `help` | The list above. |
 
-`tools/nesso_console.py` in the App root drives it without needing pyserial:
+Any serial monitor works, for example
+`arduino-cli monitor -p /dev/ttyACM0 -c baudrate=115200`.
 
-```bash
-python3 tools/nesso_console.py "wifi MyNetwork my-password"
-python3 tools/nesso_console.py scan connect
-python3 tools/nesso_console.py           # just tail the log
-```
-
-Pass `--reset` to reboot the board first. The ESP32-C6 talks over native USB, so
-the port re-enumerates on every reset and can move between `/dev/ttyACM0` and
-`/dev/ttyACM1` — the tools pick the first one they find, or honour
-`NESSO_PORT_DEV`. If the console goes quiet, `--reset` brings it back: the USB
-CDC endpoint stops emitting after a host detaches without re-asserting DTR.
-
-## Screenshots over the cable
-
-`screen` streams the framebuffer as base64 RGB565, and `tools/nesso_screenshot.py`
-turns it into a PNG. It is the only way to see the panel without pointing a
-camera at it:
-
-```bash
-python3 tools/nesso_screenshot.py shot.png
-python3 tools/nesso_screenshot.py --reset --pre scan,connect --settle 10 dash.png
-```
+The ESP32-C6 talks over native USB, so the port re-enumerates on every reset and
+can move between `/dev/ttyACM0` and `/dev/ttyACM1`. If the console goes quiet,
+reset the Nesso: the USB CDC endpoint stops emitting after a host detaches
+without re-asserting DTR.
 
 ## Modulinos
 
@@ -275,29 +263,12 @@ arduino-cli upload  -b esp32:esp32:arduino_nesso_n1 -p /dev/ttyACM0 NessoCompani
 arduino-cli monitor -p /dev/ttyACM0 -c baudrate=115200
 ```
 
-### Building on the UNO Q itself
-
-The full `esp32:esp32` platform is about 4 GB installed, which does not fit
-alongside the Zephyr core on the board's `/home/arduino` partition. A minimal
-ESP32-C6-only toolchain (~2.4 GB) is installed under `/var/tmp/arduino-esp32`
-and selected with a dedicated config file:
-
-```bash
-arduino-cli --config-file ~/.arduino-esp32.yaml compile \
-    -b esp32:esp32:arduino_nesso_n1 \
-    --build-path ~/.cache/nesso-build \
-    nesso-firmware/NessoCompanion
-
-arduino-cli --config-file ~/.arduino-esp32.yaml upload \
-    -b esp32:esp32:arduino_nesso_n1 -p /dev/ttyACM0 \
-    --input-dir ~/.cache/nesso-build \
-    nesso-firmware/NessoCompanion
-```
-
-That install holds only the RISC-V toolchain and the ESP32-C6 libraries; the
-Xtensa toolchain and the other seven target variants are skipped. `/var/tmp`
-survives reboots but is fair game for `systemd-tmpfiles`, so if the toolchain
-disappears, re-run the install.
+To ship a new build with the brick, export the compiled binaries
+(`arduino-cli compile --export-binaries ...`), copy the bootloader, partitions,
+`boot_app0` and application images into [`../firmware`](../firmware) under the
+names used there, and write the new `NESSO_FIRMWARE_VERSION` from `config.h`
+into `firmware/version.txt`. If the two disagree, autoflash updates forever or
+never.
 
 ## Tuning
 
@@ -316,7 +287,7 @@ dashboard is laid out for. Rotating it needs the row geometry in `ui.cpp`
 adjusted to match.
 
 **Protocol version.** `NESSO_PROTOCOL_VERSION` must match `PROTOCOL_VERSION` in
-`bricks/nesso_companion/protocol.py`. A mismatch is refused at the handshake
+`protocol.py` in the brick root. A mismatch is refused at the handshake
 rather than misbehaving later.
 
 ## Performance

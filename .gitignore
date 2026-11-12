@@ -1,7 +1,3 @@
 .cache/
 __pycache__/
 *.pyc
-
-# Each App gets its own copy of the brick at install time, from the single
-# source in bricks/. The copy is a build artefact: edit bricks/, run install.sh.
-apps/*/bricks/
