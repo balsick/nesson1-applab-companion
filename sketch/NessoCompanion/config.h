@@ -5,7 +5,7 @@
 #include <Arduino.h>
 
 // --- Protocol -------------------------------------------------------------
-// Must match PROTOCOL_VERSION in bricks/nesso_companion/protocol.py.
+// Must match PROTOCOL_VERSION in protocol.py, in the brick root.
 #define NESSO_PROTOCOL_VERSION 1
 #define NESSO_FIRMWARE_VERSION "1.1.0"
 

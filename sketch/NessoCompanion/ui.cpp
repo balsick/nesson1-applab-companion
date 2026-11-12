@@ -30,8 +30,8 @@ void begin() {
   Serial.printf("[ui] framebuffer %s\n", buffered ? "enabled" : "unavailable, drawing direct");
 }
 
-// Streams the framebuffer as base64 RGB565 between two markers. The host side
-// is tools/nesso_screenshot.py; this is the only way to see what the 135x240
+// Streams the framebuffer as base64 RGB565 between two markers, for a decoder
+// on the host side. This is the only way to see what the 135x240
 // panel is actually drawing without pointing a camera at it.
 void dumpScreen() {
   if (!buffered) {

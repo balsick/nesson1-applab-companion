@@ -1,253 +1,336 @@
-# Nesso N1 Companion
+# Nesso N1 Companion — Custom Brick
 
-Two Arduino Apps for the **UNO Q** that use an **Arduino Nesso N1** as a
-companion device, through one shared Custom Brick.
+Pairs an **Arduino Nesso N1** with an Arduino App as a companion device: a
+second screen, a remote control and an extra set of sensors, on the other side
+of a WebSocket.
 
-| | |
-| --- | --- |
-| [`apps/nesso-companion`](apps/nesso-companion) | The reference App. Subscribes to everything the Nesso can report and mirrors it on a live Web UI. Start here. |
-| [`apps/nesso-presenter`](apps/nesso-presenter) | A slide deck driven from the Nesso: keys change slide, tilt moves a pointer, and two slides are live. |
+The brick is a [Custom Brick](https://docs.arduino.cc/software/app-lab/bricks/custom-bricks/):
+it lives inside the App that uses it, under `bricks/nesso_companion/`, and is not
+published to the Bricks index. It carries everything the Nesso side needs too:
+the firmware ready to flash, and the sketch it was built from.
+
+```
+nesso_companion/
+├── __init__.py          # public exports
+├── companion.py         # the NessoCompanion class
+├── protocol.py          # wire protocol + standard names, shared with the sketch
+├── provision.py         # autoflash: version probe + esptool update
+├── brick_config.yaml    # id, name, port, variables
+├── requirements.txt     # websockets, esptool
+├── firmware/            # prebuilt Nesso N1 images + version.txt
+└── sketch/              # the Nesso N1 sketch sources (see sketch/README.md)
+```
 
 ## Install
 
-Clone anywhere — **not** inside `~/ArduinoApps` — then:
+1. Copy this folder into your App as `bricks/nesso_companion/` (the folder name
+   must match the brick id).
+2. Add it to `app.yaml`, with its port (see the quick start below).
+3. Put the firmware on the Nesso N1: [flash it by hand](#flash-the-nesso-by-hand)
+   once, or turn on [autoflash](#updating-the-nesso-from-the-app).
+4. Start the App. On first boot the Nesso shows a QR code that joins its
+   `Nesso-N1-Setup` access point; pick the Wi-Fi network the board is on, then
+   pick the board from the list.
 
-```bash
-./install.sh
+## The idea
+
+The App declares what it wants. The Nesso does only that.
+
+Registering `companion.on("accelerometerX", cb)` is not a filter applied to a
+firehose — it is what makes the Nesso turn the accelerometer on in the first
+place. The list of registrations is sent to the Nesso as a single `config` frame
+during the handshake, and the Nesso starts exactly those sensors, hooks exactly
+those buttons, brings up exactly those Modulinos, and draws exactly those
+widgets. An App that never asks for the gyroscope leaves the gyroscope asleep.
+
+## Quick start
+
+`app.yaml`:
+
+```yaml
+ports:
+  - 8077
+bricks:
+  - nesso_companion:
+      variables:
+        NESSO_PORT: "8077"
+        NESSO_NAME: "My App"
 ```
 
-App Lab discovers Apps by a flat scan of `~/ArduinoApps`, so each App has to be
-a top-level directory there. `install.sh` symlinks them into place and copies
-the brick into each one. Docker resolves the symlink when it bind-mounts the
-App, so inside the container `/app` is an ordinary directory — which means you
-edit the repo and the running App sees it, with nothing to copy back.
+`python/main.py`:
 
-**Re-run it after changing `bricks/`**, because each App holds a copy. There is
-no shared location for Custom Bricks in App Lab; keeping one source here and
-copying at install time is what stops the two copies drifting apart in silence.
-`./install.sh --check` reports without changing anything.
+```python
+from arduino.app_utils import App
+from nesso_companion import NessoCompanion
 
-Then flash the Nesso — see [`nesso-firmware/README.md`](nesso-firmware/README.md),
-which opens with the four libraries you need.
+companion = NessoCompanion()
 
-The Nesso finds the board on the network by itself, asks what it should do, and
-then does only that: streams the sensor values the App subscribed to, at the
-rates the App asked for, reports the buttons the App cares about, and draws a
-dashboard generated from the widgets the App declared.
+companion.on("accelerometerX", lambda v: print("ax", v))
+companion.on("button_1", lambda action: print("main button", action))
+companion.on_modulino("knob/press", lambda v: print("knob pressed"))
 
-![The reference App's Web UI, with a real Nesso N1 streaming](apps/nesso-companion/assets/img/webui.png)
+companion.add_value("slide", "read-only", label="Slide")
+companion.on_value("next", "button", lambda v: print("next!"), label="Next")
 
-<p>
-  <img src="apps/nesso-companion/assets/img/nesso-setup-qr.png" width="135" alt="Setup screen on the Nesso with a QR code that joins its Wi-Fi access point">
-  <img src="apps/nesso-companion/assets/img/nesso-picker.png" width="135" alt="Board picker on the Nesso: boards running a companion App are marked with a green dot">
-  <img src="apps/nesso-companion/assets/img/nesso-dashboard.png" width="135" alt="Dashboard generated on the Nesso from the widgets this App registered">
-</p>
+companion.send_value("slide", "3 / 10")
 
-On the Nesso: the setup screen, whose QR joins the Nesso's own access point
-straight from a phone camera; the board picker, which lists boards running a
-companion App first with a green dot and dims the rest; and the dashboard
-generated from the widgets this App registered.
+App.run()
+```
 
-### Changing the Wi-Fi network
+## API
 
-Three ways, depending on what you have to hand:
+### Constructor
+
+```python
+NessoCompanion(port=None, name=None, host="0.0.0.0", default_rate_hz=None)
+```
+
+| Argument | Default | Meaning |
+| --- | --- | --- |
+| `port` | `NESSO_PORT` env, else `8077` | TCP port of the WebSocket server. Must also appear in `app.yaml` under `ports:`. |
+| `name` | `NESSO_NAME` env, else the App folder | Shown on the Nesso screen and in its board picker. |
+| `host` | `0.0.0.0` | Bind address. |
+| `default_rate_hz` | `NESSO_DEFAULT_RATE_HZ` env, else `10` | Rate for sensors registered without `rate_hz`. |
+| `screen_idle_s` | `NESSO_SCREEN_IDLE_S` env, else `60` | Seconds before the Nesso blanks its screen; `0` keeps it lit. Never applies during Wi-Fi setup. |
+
+The class is decorated with `@brick`, so instantiating it before `App.run()` is
+enough — the framework calls `start()` and `stop()` for you.
+
+### Asking the Nesso for things
+
+```python
+companion.on(name, callback=None, *, rate_hz=None)
+```
+
+Subscribes to a **standard value** or a **button**. Usable as a decorator when
+`callback` is omitted.
+
+Standard value names:
+
+| Group | Names | Unit |
+| --- | --- | --- |
+| Accelerometer | `accelerometerX`, `accelerometerY`, `accelerometerZ` | g |
+| Gyroscope | `gyroscopeX`, `gyroscopeY`, `gyroscopeZ` | °/s |
+| Orientation | `pitch`, `roll` | degrees, derived from gravity |
+| Battery | `batteryLevel`, `batteryVoltage` | %, V |
+
+Sensor callbacks receive `(value)`, and optionally `(value, name, timestamp_ms)`
+— you take as many arguments as you want and the rest are dropped.
+
+Button names are `button_1` (KEY1) and `button_2` (KEY2). Button callbacks
+receive `(action)`, optionally `(action, name, timestamp_ms)`, where action is
+one of `press`, `release`, `click`, `double_click`, `long_press`.
+
+```python
+companion.on_modulino(spec, callback=None)
+```
+
+Subscribes to a Modulino plugged into the Nesso's Qwiic connector. `spec` is
+`'<kind>/<event>'` (`'knob/press'`) or just `'<kind>'` for every event of that
+Modulino. Callbacks receive `(value)`, optionally `(value, event, kind)`.
+
+Known kinds on the Nesso side: `knob` (`rotate`, `press`, `release`),
+`buttons` (`a`, `b`, `c`), `movement` (`x`, `y`, `z`), `distance` (`mm`, and
+`None` when nothing is in range), `pixels` (output only).
+
+`companion.modulinos` returns `{kind: present}` for everything the App
+subscribed to, as reported by the Nesso, and updates when one is plugged in
+mid-session. That is how you tell "this App never asked for a Knob" apart from
+"it asked, and there is no Knob attached".
+
+### Widgets on the Nesso screen
+
+```python
+companion.add_value(name, kind="read-only", label=None, **options)
+companion.on_value(name, kind, callback=None, label=None, **options)
+```
+
+`add_value` declares something the Nesso only displays. `on_value` declares
+something it displays **and** lets the user change, calling back with the new
+value.
+
+| kind | Drawn as | Options | Reports |
+| --- | --- | --- | --- |
+| `read-only` / `value` | label + value | `unit` | — |
+| `button` | full-width tappable button | — | `True` on tap |
+| `switch` | toggle pill | `value` | `True` / `False` |
+| `slider` | track with a filled bar | `min`, `max`, `step`, `value` | the number |
+| `stepper` | `-  value  +` | `min`, `max`, `step`, `value` | the number |
+
+### Pushing values out
+
+```python
+companion.send_value(name, value)        # one widget
+companion.send_values({name: value})     # several, one frame
+companion.send_modulino(kind, value)     # e.g. ("pixels", [(255,0,0)] * 8)
+```
+
+All three return `True` when the frame reached a connected Nesso. Sending to an
+unregistered widget logs a warning and returns `False`.
+
+### More than one Nesso
+
+Several remotes can connect at once — to the **same port**, since one WebSocket
+server accepts many clients. Each gets its own `Device`:
+
+```python
+companion.devices                 # everything connected, oldest first
+companion.device                  # the longest-connected one, or None
+companion.device_by_id("48:F6:…") # by the id it sent in its hello
+
+device.name, device.id, device.address, device.firmware
+device.values                     # this remote's readings
+device.modulinos                  # what is plugged into this remote
+device.send_value("slide", 3)     # to this remote alone
+device.send_modulino("pixels", bar)
+```
+
+**Every callback receives the sending device as its last argument**, and
+handlers that do not declare it never see it:
+
+```python
+@companion.on("button_1")
+def next_slide(action, name, ts, device):
+    log(f"{device.name} pressed next")
+
+@companion.on("button_1")
+def also_fine(action):        # still works, untouched
+    ...
+```
+
+Two brick-level properties merge across devices, which is right for one remote
+and worth knowing about for several:
 
 | | |
 | --- | --- |
-| On the device | In the board picker, **hold KEY2**. Setup re-opens with the QR code, and the stored network is kept until you save a new one. |
-| Over USB | `python3 tools/nesso_console.py portal` to re-open setup, or `"wifi <ssid> <password>"` to switch straight over. |
-| Start clean | `python3 tools/nesso_console.py forget`, or hold **both keys while powering on**, which wipes the stored network entirely. |
+| `companion.values` | merged key by key, **last writer wins** — two remotes streaming `pitch` overwrite each other, so read `device.values` instead |
+| `companion.modulinos` | "is one attached **anywhere**" — for "does *that* remote have one", read `device.modulinos` |
 
-## Layout
+Screen widgets are deliberately **not** per-device: they are declared by the App
+and every connected Nesso draws the same ones, so a tap on one is a change for
+all. The device argument tells you who did it.
 
-Everything shared lives at the root; everything App-specific lives under `apps/`.
+### Link lifecycle and state
 
-```
-nesso-companion/
-├── install.sh                   # symlink the Apps into ~/ArduinoApps, copy the brick
-├── bricks/nesso_companion/      # THE CUSTOM BRICK, single source  (see its README for the API)
-├── nesso-firmware/              # THE NESSO SKETCH, one for both Apps  (build + flash)
-├── tools/                       # fake_nesso.py (simulator), nesso_console.py,
-│                                #   nesso_screenshot.py, nesso_serial.py
-└── apps/
-    ├── nesso-companion/
-    │   ├── app.yaml             # web_ui + the nesso_companion brick, port 8077
-    │   ├── python/main.py       # registers every callback, mirrors to the Web UI
-    │   ├── assets/              # the Web UI
-    │   └── bricks/              # generated by install.sh - gitignored
-    └── nesso-presenter/
-        ├── app.yaml
-        ├── python/main.py       # the deck, the pointer, the live slides
-        ├── assets/slides.md     # the deck itself, in a tiny markdown dialect
-        └── bricks/              # generated by install.sh - gitignored
+```python
+companion.on_connect(cb)      # cb(device_info)
+companion.on_disconnect(cb)   # cb(device_info)
+
+companion.connected           # bool
+companion.device              # the longest-connected Device, or None
+companion.devices             # every connected Device
+companion.values              # {name: last value} for every subscribed sensor
+companion.widget_values       # {widget id: current value}
+companion.url                 # ws://<board ip>:<port>
+companion.describe()          # the whole picture as plain data, for a UI
 ```
 
-The same firmware serves both Apps without reflashing: the Nesso renders
-whatever the App it linked to declared in the handshake. That is the point of
-the brick, and the presenter was written without touching the sketch.
+Callbacks run in a worker thread, not on the brick's asyncio loop, so a handler
+that blocks — a `Bridge.call`, a Web UI emit, a slow HTTP request — cannot stall
+the socket.
 
-## Run it
+Registering more callbacks after a Nesso has already connected is fine: the
+config is versioned, and a changed registration set is re-sent on the next frame
+the Nesso delivers.
 
-```bash
-arduino-app-cli app start user:nesso-companion
+## Discovery and the wire protocol
+
+The Nesso finds the board by browsing mDNS for `_arduino._tcp`, which every
+Q-family board advertises. That service points at port 80, not at this brick, so
+the Nesso then makes a plain HTTP request to `http://<board>:<port>/info` on the
+companion port. The brick answers without upgrading to a WebSocket:
+
+```json
+{"service":"nesso-companion","proto":1,"app":"Nesso N1 Companion","port":8077,"connected":false}
 ```
 
-- Web UI: `http://<board-ip>:7000`
-- Companion endpoint: `ws://<board-ip>:8077` (descriptor at `http://<board-ip>:8077/info`)
+That is what lets the Nesso's picker mark which of the boards on the network are
+actually running a companion App.
 
-### Pair the Nesso
+The socket itself carries one JSON object per frame, each with a `t` type key.
+`protocol.py` documents every frame; the short version:
 
-1. Flash the firmware — see [`nesso-firmware/README.md`](nesso-firmware/README.md).
-   It needs four libraries installed first, and the WebSockets one has a
-   same-named impostor in the Library Manager; that README opens with the list.
-2. Get it onto **the network the UNO Q is on** (`Arduinoboards` here), either way:
-   - **Over the USB cable**, which is already connected:
-     ```bash
-     python3 tools/nesso_console.py "wifi Arduinoboards <your-password>"
-     ```
-   - **From a phone**: on first boot the Nesso shows a QR code. Point a camera
-     at it to join its `Nesso-N1-Setup` access point, then open
-     `http://192.168.4.1`, pick the network and save.
-3. The Nesso scans for Arduino boards and lists them. Boards running a companion
-   App carry a green dot and show the App name. Tap one, or use KEY1 to move and
-   KEY2 to select.
-4. The Web UI turns green and the Nesso starts streaming.
+| Direction | `t` | Carries |
+| --- | --- | --- |
+| Nesso → board | `hello` | protocol version, device id, capabilities |
+| board → Nesso | `config` | the handshake: sensors + rates, buttons, Modulinos, widgets |
+| Nesso → board | `data` | a batch of `{name: value}` for everything that came due |
+| Nesso → board | `event` | a button action |
+| Nesso → board | `ui` | the user changed a widget on the screen |
+| Nesso → board | `modulino` | a Modulino event |
+| Nesso → board | `status` | which subscribed Modulinos are actually attached |
+| Nesso → board | `log` | a line for the App log |
+| board → Nesso | `value` | new value(s) for widget(s) |
+| board → Nesso | `modulino` | data for an output Modulino |
 
-> The Nesso discovers the board over mDNS, so **both have to be on the same
-> network segment**. This UNO Q is reachable at `10.130.22.173` over Ethernet; if
-> your Wi-Fi is a different subnet with no mDNS forwarding, the picker will come
-> up empty.
+## Why not the RemoteSensor peripheral?
 
-### Testing the Modulino callbacks
+`arduino.app_peripherals.remote_sensor` also hosts a WebSocket server, and it
+was the obvious candidate. It does not fit:
 
-Phase 1 subscribes to three: `knob/press`, `knob/rotate`, all `buttons` events
-and all `movement` events. With nothing plugged in they simply stay quiet, and
-the Nesso reports them absent.
+- **It is one-way.** Its public API is `on_datapoint` / `on_status_changed`;
+  there is no public `send`. This brick's whole point is the handshake plus the
+  `value` and `modulino` frames going back out to the device.
+- **It accepts a single client** and closes any second one with "Server busy".
+- **Its framing is BPP** with optional HMAC/ChaCha20, designed for the phone
+  companion app, and its payload body is left entirely undefined — so the
+  handshake, the standard names and the widget model would have had to be built
+  on top anyway.
 
-- **With hardware:** plug a Modulino Knob, Buttons, Movement or Distance into
-  the Nesso's Qwiic connector. It is picked up within ~3 s without re-linking; watch the
-  Events panel in the Web UI. `python3 tools/nesso_console.py status` shows what
-  the Nesso currently sees.
-- **Without hardware:** `tools/fake_nesso.py` sends Modulino frames, so the
-  App-side callbacks and the Web UI can be exercised on their own.
+What was worth borrowing is its shape, and this brick follows it: the same
+`websockets` server library, the same "callbacks run off the event loop" rule,
+the same lifecycle-status idea. If RemoteSensor grows a public bidirectional
+API, the transport here could be swapped for it without changing the App-facing
+methods.
 
-**Modulino Pixels is writable from either end.** `LED auto` follows the Distance
-sensor as a proximity bar; turning it off hands control to `LED hue` and
-`LEDs lit`. `LED level` sets brightness and applies in both modes - the LEDs are
-uncomfortably bright at full output, so it defaults to 25%. All four exist both
-as widgets on the Nesso's screen and as controls in the Web UI. Whichever one you touch, the other follows: a change from the
-browser is pushed back onto the Nesso's widgets, so the screen never disagrees
-with what the LEDs are doing.
+## Updating the Nesso from the App
 
-`GET /api/pixels/test` runs a sweep across the eight LEDs, which is the quickest
-way to confirm the output path end to end.
-
-### Try it without a Nesso
-
-```bash
-docker exec nesso-companion-main-1 \
-    /app/.cache/.venv/bin/python /app/tools/fake_nesso.py
-```
-
-It prints the handshake the App sent, then drives every callback path. The Web
-UI reacts exactly as it would to real hardware.
-
-## What Phase 1 registers
-
-Everything the brick can do, so that the Web UI can show the full picture:
-
-| | |
-| --- | --- |
-| Sensors | accelerometer X/Y/Z and gyroscope X/Y/Z at 20 Hz, pitch/roll at 10 Hz, battery level/voltage at 1 Hz |
-| Buttons | `button_1` and `button_2`, all actions |
-| Modulinos | `knob/press`, `knob/rotate`, all `buttons` events, all `movement` events, `distance` in mm |
-| Modulino output | a Modulino **Pixels**, writable three ways: automatically as a proximity bar from Distance, from the Nesso's own screen, or from the Web UI |
-| Screen widgets | `board`, `uptime`, `browsers` (read-only); `ping` (button), `stream` (switch), `brightness` (slider), `slide` (stepper); plus `LED auto` (switch), `LED hue` (slider) and `LEDs lit` (stepper) driving the Modulino Pixels |
-
-The Web UI has four panels: the **handshake** the board sent, live **motion**,
-a mirror of the **Nesso screen**, and an **event log** of every button, tap and
-Modulino event.
-
-The `ping` button is the round trip made visible: tapping it on the Nesso calls
-a Python handler, which calls `send_value("board", "pong")`, which lands back on
-the Nesso's screen.
-
-## Where the phases go next
-
-- **Phase 1 — the link, end to end.** Done. Discovery, handshake, sensors,
-  buttons, screen widgets, Modulinos, all verified on hardware.
-- **Phase 2 — presentation remote.** Done, as a **separate App**: see
-  `../nesso-presenter`. Keys change slide, tilt moves a pointer, and the Nesso's
-  screen carries a jump control and the clock. It reuses this brick and this
-  firmware unchanged — the whole phase was written without reflashing the Nesso
-  once. Where this App registers ten sensors and five Modulinos, the presenter
-  registers four values and nothing else, which is the clearest demonstration of
-  what the handshake is for.
-- **Phase 3 — Modulino Pixels.** Done, out of order, once the hardware arrived.
-  Writable three ways — automatically as a proximity bar from Distance, from the
-  Nesso's screen, and from the Web UI — with `LED level` for brightness.
-- **Phase 4 — to be defined.**
-
-## Backlog
-
-Ideas that are investigated but deliberately not built.
-
-### ~~Flash the Nesso from the App at startup~~ — built, see the brick README
-
-Built and verified on hardware: 21 s to update an out-of-date Nesso, 0.75 s to
-confirm a current one, on a background thread so start-up never waits.
-`NESSO_AUTOFLASH` defaults to **false** for the reason below. The prerequisites
-that were checked first:
-
-| Prerequisite | Finding |
-| --- | --- |
-| The container can see serial | `/dev` is bind-mounted read-write, and `DeviceCgroupRules` grants `c 166:* rmw` — the ttyACM major |
-| It can write to it | the container user is in `dialout`, and `/dev/ttyACM0` is writable |
-| It can read the version | a reset plus a two-second read returns the boot banner, `[nesso] companion 1.0.0`, from inside the container |
-| It can flash | `esptool` 5.4.0 installs into the App venv and imports |
-
-The version probe needs no new protocol: the firmware already prints its version
-at boot. Flashing needs four artifacts committed to the repo — bootloader
-(20 KB), partitions (3 KB), boot_app0 (8 KB) and the application (1.4 MB).
-
-**It must be opt-in.** Probing resets whatever ESP32 is attached, and VID:PID
-`303a:1001` identifies "an Espressif USB device", not "a Nesso N1" — so an
-unrelated board on the same port would be reset, and potentially erased. The
-brick should therefore take a flag that defaults to **off**:
+The brick can check an attached Nesso at start-up and update it if its firmware
+differs from the one shipped in this brick's `firmware/`. It is **off unless you
+ask for it**:
 
 ```yaml
 bricks:
   - nesso_companion:
       variables:
-        NESSO_AUTOFLASH: "false"   # default; only ever set true deliberately
+        NESSO_AUTOFLASH: "true"   # default is false
 ```
 
-Open questions before building it: keeping `NESSO_FIRMWARE_VERSION` in step with
-the committed binaries (otherwise it re-flashes forever, or never), and whether
-build output belongs in git at all. Note also that the serial console can drop a
-byte right after a reset, so the banner parser has to be tolerant rather than
-assume a clean buffer.
+Why it defaults to off: probing **resets whatever is on the port**, and the USB
+identifiers (`303a:1001`) say "an Espressif device", not "a Nesso N1". An
+unrelated ESP32 plugged into the same board would be reset and, if the update
+went ahead, overwritten.
 
-### Blank the screen when idle
+There is no protocol for the version check - the firmware prints its version on
+boot, so a reset and a short read is the whole probe. Measured on this board:
 
-The Nesso cannot charge while running: it draws more than the USB port supplies,
-so the charger sits in supplement mode and the battery drains anyway. The
-backlight is the largest load, and `LCD_BACKLIGHT` is an on/off expander pin, so
-blanking the screen after a period with no touch or key — waking on either —
-would cut it substantially. Worth doing for battery life regardless of charging.
+| | |
+| --- | --- |
+| Already current | **0.75 s**, no write |
+| Out of date | **21 s**, four images, hashes verified |
 
-## Notes## Notes
+It runs on a background thread, so App start-up never waits for it. The Nesso
+must be plugged into the board's USB-C hub. Keep `firmware/version.txt` in step
+with `NESSO_FIRMWARE_VERSION` in `sketch/NessoCompanion/config.h`, or the App
+will either update forever or never.
 
-- `python/requirements.txt` is deliberately empty: the brick declares its own
-  dependency (`websockets`) in `bricks/nesso_companion/requirements.txt`, which
-  the orchestrator installs into the App's venv.
-- The companion port appears in three places and they must agree: `ports:` and
-  the `NESSO_PORT` variable in `app.yaml`, and the port stored on the Nesso
-  (default 8077, changeable from the setup portal).
-- Third-party JS is vendored under `assets/js/vendor/`; no CDN is used at
-  runtime.
-- `GET /api/state` returns the whole link state, including the last value of
-  every subscribed sensor. Handy for scripting and for checking the link without
-  opening a browser.
-- The Nesso's battery was at 8% during testing. It charges over USB-C whenever
-  it is plugged in, and the firmware enables charging at boot.
+## Flash the Nesso by hand
+
+`firmware/` holds the four images of the current build. From a computer with
+the Nesso on USB, with [esptool](https://docs.espressif.com/projects/esptool/)
+(`pip install esptool`):
+
+```bash
+cd firmware
+esptool --chip esp32c6 --port /dev/ttyACM0 --baud 921600 write-flash \
+    --flash-mode dio --flash-freq 80m --flash-size 16MB \
+    0x0 bootloader.bin 0x8000 partitions.bin 0xe000 boot_app0.bin 0x10000 firmware.bin
+```
+
+Replace `/dev/ttyACM0` with the Nesso's port (`COM5` on Windows,
+`/dev/cu.usbmodem…` on macOS). With esptool 4.x the command is spelled
+`esptool.py … write_flash`.
+
+To change the firmware instead, build it from `sketch/` with the Arduino IDE or
+`arduino-cli`: [`sketch/README.md`](sketch/README.md) lists the four libraries
+it needs and how to compile and upload it.
