@@ -30,11 +30,13 @@ widgets. An App that never asks for the gyroscope leaves the gyroscope asleep.
 
 ## Quick start
 
+The brick exposes port 8077 on its own, so `app.yaml` must **not** list it under
+`ports:` too: since App Lab 0.14 a port declared twice stops the App from
+starting (`port 8077 is declared by multiple sources`).
+
 `app.yaml`:
 
 ```yaml
-ports:
-  - 8077
 bricks:
   - nesso_companion:
       variables:
@@ -72,7 +74,7 @@ NessoCompanion(port=None, name=None, host="0.0.0.0", default_rate_hz=None)
 
 | Argument | Default | Meaning |
 | --- | --- | --- |
-| `port` | `NESSO_PORT` env, else `8077` | TCP port of the WebSocket server. Must also appear in `app.yaml` under `ports:`. |
+| `port` | `NESSO_PORT` env, else `8077` | TCP port of the WebSocket server. The brick exposes 8077 itself; on any other port, add it to `app.yaml` under `ports:`. |
 | `name` | `NESSO_NAME` env, else the App folder | Shown on the Nesso screen and in its board picker. |
 | `host` | `0.0.0.0` | Bind address. |
 | `default_rate_hz` | `NESSO_DEFAULT_RATE_HZ` env, else `10` | Rate for sensors registered without `rate_hz`. |
