@@ -1,7 +1,6 @@
 name: Nesso N1 Companion
 description: "Pairs an Arduino Nesso N1 with the UNO Q over WebSocket and shows everything it streams - IMU, buttons, Modulino events and screen widgets - on a live Web UI."
-ports:
-- 8077
+ports: []
 bricks:
 - arduino:web_ui: {}
 - nesso_companion:
