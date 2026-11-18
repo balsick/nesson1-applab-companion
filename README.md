@@ -207,3 +207,9 @@ are in the [brick README](bricks/nesso_companion/README.md#updating-the-nesso-fr
 - The Nesso cannot really charge while running: it draws more than the USB port
   supplies, so the battery drains slowly even when plugged in. The screen blanks
   after `NESSO_SCREEN_IDLE_S` seconds (60 by default) to limit that.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The prebuilt images in `nesso-firmware/build/`
+also contain third-party libraries, which keep their own licenses: see the
+[brick README](bricks/nesso_companion/README.md#license).
