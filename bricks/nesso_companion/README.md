@@ -310,3 +310,10 @@ boot, so a reset and a short read is the whole probe. Measured on this board:
 It runs on a background thread, so App start-up never waits for it. Keep
 `nesso-firmware/build/version.txt` in step with `NESSO_FIRMWARE_VERSION` in
 `config.h`, or the App will either update forever or never.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The prebuilt images in `nesso-firmware/build/`
+also contain the third-party libraries the sketch is built with (the ESP32
+Arduino core, `Arduino_Nesso_N1`, `WebSockets`, `ArduinoJson`,
+`Arduino_Modulino`), which keep their own licenses.
