@@ -336,3 +336,10 @@ Replace `/dev/ttyACM0` with the Nesso's port (`COM5` on Windows,
 To change the firmware instead, build it from `sketch/` with the Arduino IDE or
 `arduino-cli`: [`sketch/README.md`](sketch/README.md) lists the four libraries
 it needs and how to compile and upload it.
+
+## License
+
+MIT, see [LICENSE](LICENSE). The prebuilt images in `firmware/` also contain the
+third-party libraries the sketch is built with (the ESP32 Arduino core,
+`Arduino_Nesso_N1`, `WebSockets`, `ArduinoJson`, `Arduino_Modulino`), which keep
+their own licenses.
